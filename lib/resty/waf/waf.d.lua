@@ -3,7 +3,7 @@
 ---@field IP string
 ---@field GLOBAL string
 ---@field REQBODY_PROCESSOR string
----@field RULE string
+---@field RULE WAF.Rule
 ---@field REMOTE_ADDR string
 ---@field HTTP_VERSION string
 ---@field METHOD string
