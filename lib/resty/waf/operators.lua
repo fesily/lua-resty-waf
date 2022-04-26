@@ -8,10 +8,13 @@ local iputils   = require "resty.iputils"
 local libinject = require "resty.libinjection"
 local logger    = require "resty.waf.log"
 local util      = require "resty.waf.util"
+local regex     = require "resty.waf.regex"
 
 local string_find = string.find
 local string_gsub = string.gsub
 local string_sub  = string.sub
+local re_find = regex.find
+local re_match = regex.match
 
 local band, bor, bxor = bit.band, bit.bor, bit.bxor
 
@@ -208,10 +211,10 @@ function _M.regex(waf, subject, pattern)
 			end
 		end
 	else
-		captures, err = ngx.re.match(subject, pattern, opts)
+		captures, err = re_match(subject, pattern, opts)
 
 		if err then
-			logger.warn(waf, "error in ngx.re.match: " .. err)
+			logger.warn(waf, "error in re_match: " .. err)
 		end
 
 		if captures then
@@ -235,10 +238,10 @@ function _M.refind(waf, subject, pattern)
 			end
 		end
 	else
-		from, to, err = ngx.re.find(subject, pattern, opts)
+		from, to, err = re_find(subject, pattern, opts)
 
 		if err then
-			logger.warn(waf, "error in ngx.re.find: " .. err)
+			logger.warn(waf, "error in re_find: " .. err)
 		end
 
 		if from then
@@ -496,6 +499,70 @@ function _M.verify_cc(waf, input, pattern)
 	return match, value
 end
 
+-- module-level cache of validate_byterange
+local _byterange_cache = {}
+
+function _M.validate_byterange(input, range_pattern, ctx)
+	local id = ctx.id
+
+	local ranges = {}
+	if not _byterange_cache[id] then
+		if type(range_pattern) ~= "table" then
+			range_pattern = { range_pattern }
+		end
+
+		-- parse ranges into numbers
+		for _, v in ipairs(range_pattern) do
+			if v:match('%-') ~= nil then
+				local elements = {}
+				string_gsub(v, '([^-]+)', function(value)
+					elements[#elements + 1] = tonumber(value)
+				end)
+				ranges[#ranges + 1] = elements
+			else
+				ranges[#ranges + 1] = tonumber(v)
+			end
+		end
+
+		_byterange_cache[id] = ranges
+	else
+		ranges = _byterange_cache[id]
+	end
+
+	if type(input) == 'table' then
+		for _, v in ipairs(input) do
+			local match, value = _M.byterange(v, range_pattern, ctx)
+
+			if match then
+				return match, value
+			end
+		end
+	else
+		for pos = 1,#input do
+			local match = false
+			for _, range in ipairs(ranges) do
+				if type(range) == 'table' then
+					local min = range[1]
+					local max = range[2]
+
+					if (input:byte(pos) >= min and input:byte(pos) <= max) then
+						match = true
+					end
+				elseif input:byte(pos) == range then
+					match = true
+				end
+			 end
+
+			if match == false then
+				return true, input
+			end
+		end
+	end
+
+	return false, input
+end
+
+
 _M.lookup = {
 	REGEX        = function(waf, collection, pattern) return _M.regex(waf, collection, pattern) end,
 	REFIND       = function(waf, collection, pattern) return _M.refind(waf, collection, pattern) end,
@@ -515,6 +582,7 @@ _M.lookup = {
 	DETECT_XSS   = function(waf, collection, pattern) return _M.detect_xss(collection) end,
 	STR_MATCH    = function(waf, collection, pattern) return _M.str_match(collection, pattern) end,
 	VERIFY_CC    = function(waf, collection, pattern) return _M.verify_cc(waf, collection, pattern) end,
+	VALIDATE_BYTE_RANGE = function(waf, collection, pattern) return _M.validate_byterange(waf, collection, pattern) end,
 }
 
 return _M

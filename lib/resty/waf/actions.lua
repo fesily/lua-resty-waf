@@ -99,6 +99,9 @@ _M.nondisruptive_lookup = {
 
 		waf._mode = mode
 	end,
+	request_body_processor = function(waf, mode, ctx, collections)
+		collections.REQUEST_BODY = mode
+	end,
 }
 
 return _M

@@ -4,7 +4,7 @@ local base   = require "resty.waf.base"
 local cjson  = require "cjson"
 local logger = require "resty.waf.log"
 
-local re_find       = ngx.re.find
+local re_find       = require "resty.waf.regex".find
 local string_byte   = string.byte
 local string_char   = string.char
 local string_find   = string.find
@@ -235,7 +235,7 @@ _M.parse_collection = {
 		local _collection = {}
 		for k, _ in pairs(collection) do
 			--_LOG_"checking " .. k
-			if ngx.re.find(k, value, waf._pcre_flags) then
+			if re_find(k, value, waf._pcre_flags) then
 				v = collection[k]
 				if type(v) == "table" then
 					for __, _v in pairs(v) do
@@ -282,7 +282,7 @@ _M.sieve_collection = {
 		--_LOG_"Sieveing regex value " .. value
 		for k, _ in pairs(collection) do
 			--_LOG_"Checking " .. k
-			if ngx.re.find(k, value, waf._pcre_flags) then
+			if re_find(k, value, waf._pcre_flags) then
 				--_LOG_"Removing " .. k
 				collection[k] = nil
 			end

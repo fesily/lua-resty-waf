@@ -1,3 +1,11 @@
+OS := $(shell uname)
+
+ifeq ($(OS), Darwin)
+    SO_EXT := dylib
+else
+    SO_EXT := so
+endif
+
 OPENRESTY_PREFIX ?= /usr/local/openresty
 LUA_LIB_DIR      ?= $(OPENRESTY_PREFIX)/site/lualib
 INSTALL_SOFT     ?= ln -s
@@ -73,12 +81,12 @@ decode:
 
 lua-aho-corasick:
 	cd $@ && make
-	cp $@/libac.so lib/
+	cp $@/libac.$(SO_EXT) lib/
 
 lua-resty-htmlentities:
 	cd $@ && make
 	cp $@/lib/resty/htmlentities.lua lib/resty
-	cp $@/libhtmlentities.so lib/
+	cp $@/libhtmlentities.$(SO_EXT) lib/
 
 libinjection:
 	cd $@ && make

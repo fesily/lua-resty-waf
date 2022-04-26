@@ -1,3 +1,4 @@
+---@class WAF
 local _M = {}
 
 local actions       = require "resty.waf.actions"
@@ -45,6 +46,7 @@ local _global_rulesets = {
 _M.global_rulesets = _global_rulesets
 
 -- ruleset table cache
+---@type table<string,table<string,{[integer]:WAF.Rule}>>
 local _ruleset_defs = {}
 local _ruleset_def_cnt = 0
 
@@ -217,12 +219,19 @@ local function _do_transform(self, collection, transform)
 	return t
 end
 
+---@param self WAF
+---@param rule WAF.Rule
+---@param var WAF.Variable
+---@param collections WAF.Collections
+---@param ctx WAF.Ctx
+---@param opts WAF.Rule.Options
 local function _build_collection(self, rule, var, collections, ctx, opts)
 	if var.unconditional then
 		return true
 	end
 
 	local collection_key = var.collection_key
+	---@type string|string[]|integer
 	local collection
 
 	--_LOG_"Checking for collection_key " .. collection_key
@@ -259,6 +268,10 @@ local function _build_collection(self, rule, var, collections, ctx, opts)
 end
 
 -- process an individual rule
+---@param self WAF
+---@param rule WAF.Rule
+---@param collections WAF.Collections
+---@param ctx WAF.Ctx
 local function _process_rule(self, rule, collections, ctx)
 	local opts    = rule.opts or {}
 	local pattern = rule.pattern
@@ -268,13 +281,9 @@ local function _process_rule(self, rule, collections, ctx)
 
 	ctx.rule_status = nil
 
-	for k, v in ipairs(rule.vars) do
-		local var
-
+	for k, var in ipairs(rule.vars) do
 		if self.target_update_map[rule.id] then
 			var = self.target_update_map[rule.id][k]
-		else
-			var = rule.vars[k]
 		end
 
 		local collection = _build_collection(self, rule, var, collections, ctx, opts)
@@ -421,8 +430,7 @@ local function _merge_rulesets(self)
 
 	-- rulesets will be processed in numeric order
 	table_sort(t)
-
-	self._active_rulesets = t
+	return t
 end
 
 -- main entry point
@@ -440,7 +448,10 @@ function _M.exec(self, opts)
 		logger.fatal_fail("lua-resty-waf should not be run in phase " .. phase)
 	end
 
+
+	---@class WAF.Ctx
 	local ctx         = ngx.ctx.lua_resty_waf or tab_new(0, 20)
+	---@type WAF.Collections
 	local collections = ctx.collections or tab_new(0, 41)
 
 	ctx.lrw_initted   = true
@@ -458,6 +469,8 @@ function _M.exec(self, opts)
 	-- pre-initialize the TX collection
 	ctx.storage["TX"]    = ctx.storage["TX"] or {}
 	ctx.col_lookup["TX"] = "TX"
+	ctx.altered = false
+	ctx.short_circuit = false
 
 	-- see https://groups.google.com/forum/#!topic/openresty-en/LVR9CjRT5-Y
 	-- also https://github.com/p0pr0ck5/lua-resty-waf/issues/229
@@ -496,7 +509,8 @@ function _M.exec(self, opts)
 
 	-- build rulesets
 	if self.need_merge == true then
-		_merge_rulesets(self)
+		---@type string[]
+		self._active_rulesets = _merge_rulesets(self)
 	else
 		self._active_rulesets = _global_rulesets
 	end
@@ -534,7 +548,8 @@ function _M.exec(self, opts)
 		end
 
 		local offset = 1
-		local rule   = rs[phase][offset]
+		---@type WAF.Rule
+		local rule = rs[phase][offset]
 
 		while rule do
 			if not util.table_has_key(rule.id, self._ignore_rule) then
@@ -577,6 +592,7 @@ function _M.new()
 	end
 
 	-- we're new to this transaction get us some opts and get movin!
+	---@class WAF
 	local t = {
 		_add_ruleset                 = {},
 		_add_ruleset_string          = {},
@@ -837,13 +853,13 @@ function _M.write_log_events(self, has_ctx, ctx)
 		entry.request_body = ctx.collections["REQUEST_BODY"]
 	end
 
-	if table.getn(util.table_keys(self._event_log_ngx_vars)) ~= 0 then
+	if #util.table_keys(self._event_log_ngx_vars) ~= 0 then
 		entry.ngx = {}
 		for k, v in pairs(self._event_log_ngx_vars) do
 			entry.ngx[k] = ngx.var[k]
 		end
 	end
-
+	
 	logger.write_log_events[self._event_log_target](self, entry)
 end
 

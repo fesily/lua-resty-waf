@@ -40,13 +40,20 @@ my @valid_directives = qw(SecRule SecAction SecDefaultAction SecMarker);
 
 my $valid_vars = {
 	ARGS                    => { type => 'REQUEST_ARGS', parse => [ qw(values 1) ] },
+	ARGS_COMBINED_SIZE      => { type => 'ARGS_COMBINED_SIZE' },
 	ARGS_GET                => { type => 'URI_ARGS', parse => [ qw(values 1) ] },
 	ARGS_GET_NAMES          => { type => 'URI_ARGS', parse => [ qw(keys 1) ] },
 	ARGS_NAMES              => { type => 'REQUEST_ARGS', parse => [ qw(keys 1) ] },
 	ARGS_POST               => { type => 'REQUEST_BODY', parse => [ qw(values 1) ] },
 	ARGS_POST_NAMES         => { type => 'REQUEST_BODY', parse => [ qw(keys 1) ] },
+	FILES                   => { type => 'FILES' },
+	FILES_COMBINED_SIZE     => { type => 'FILES_COMBINED_SIZE' },
+	FILES_NAMES             => { type => 'FILES_NAMES' },
+	FILES_SIZES             => { type => 'FILES_SIZES' },
+	FILES_TMP_CONTENT       => { type => 'FILES_TMP_CONTENT', parse => [ qw(values 1) ] },
 	MATCHED_VAR             => { type => 'MATCHED_VAR' },
 	MATCHED_VARS            => { type => 'MATCHED_VARS' },
+	MATCHED_VARS_NAMES		=> { type => 'MATCHED_VARS', parse => [ qw(keys 1) ] },
 	MATCHED_VAR_NAME        => { type => 'MATCHED_VAR_NAME' },
 	MATCHED_VAR_NAMES       => { type => 'MATCHED_VAR_NAMES' },
 	QUERY_STRING            => { type => 'QUERY_STRING' },
@@ -62,6 +69,7 @@ my $valid_vars = {
 	REQUEST_METHOD          => { type => 'METHOD' },
 	REQUEST_PROTOCOL        => { type => 'PROTOCOL' },
 	REQUEST_URI             => { type => 'REQUEST_URI' },
+	REQUEST_URI_RAW         => { type => 'REQUEST_URI_RAW' },
 	RESPONSE_BODY           => { type => 'RESPONSE_BODY' },
 	RESPONSE_CONTENT_LENGTH => { type => 'RESPONSE_HEADERS', parse => [ qw(specific Content-Length) ] },
 	RESPONSE_CONTENT_TYPE   => { type => 'RESPONSE_HEADERS', parse => [ qw(specific Content-Type) ] },
@@ -80,6 +88,8 @@ my $valid_vars = {
 	TIME_YEAR               => { type => 'TIME_YEAR' },
 	TX                      => { type => 'TX', storage => 1 },
 	IP                      => { type => 'IP', storage => 1 },
+	#GLOBAL                  => { type => 'GLOBAL', storage => 1 },
+	REQBODY_PROCESSOR		=> { type => 'REQBODY_PROCESSOR' },
 };
 
 my $valid_operators = {
@@ -104,26 +114,35 @@ my $valid_operators = {
 	rx               => 'REFIND',
 	streq            => 'EQUALS',
 	strmatch         => 'STR_MATCH',
+	verifyCC         => 'VERIFY_CC',
 	within           => 'STR_EXISTS',
+	validateByteRange => 'VALIDATE_BYTE_RANGE'
 };
 
 my $valid_transforms = {
 	base64decode       => 'base64_decode',
 	base64decodeext    => 'base64_decode',
 	base64encode       => 'base64_encode',
+	cssdecode          => 'css_decode',
 	cmdline            => 'cmd_line',
 	compresswhitespace => 'compress_whitespace',
 	hexdecode          => 'hex_decode',
 	hexencode          => 'hex_encode',
 	htmlentitydecode   => 'html_decode',
+	jsdecode           => 'js_decode',
 	length             => 'length',
 	lowercase          => 'lowercase',
 	md5                => 'md5',
 	normalisepath      => 'normalise_path',
+	normalizepath      => 'normalise_path',
+	normalisepathwin   => 'normalise_path_win',
+	normalizepathwin   => 'normalise_path_win',
 	removewhitespace   => 'remove_whitespace',
 	removecomments     => 'remove_comments',
 	removecommentschar => 'remove_comments_char',
+	removenulls        => 'remove_nulls',
 	replacecomments    => 'replace_comments',
+	replacenulls       => 'replace_nulls',
 	sha1               => 'sha1',
 	sqlhexdecode       => 'sql_hex_decode',
 	trim               => 'trim',
@@ -189,6 +208,14 @@ my $ctl_lookup = {
 		push @{$translation->{exceptions}}, $value;
 
 		meta_exception($translation);
+	},
+	requestBodyProcessor => sub {
+		my ($value, $translation) = @_;
+
+		push @{$translation->{actions}->{nondisrupt}}, {
+			action => 'request_body_processor',
+			data   => $value,
+		};
 	},
 };
 
@@ -443,7 +470,7 @@ sub parse_operator {
 	#
 	# note that some operators (i'm looking at you, libinjection wrapper)
 	# do not require a pattern, so we need to account for such cases
-	my ($negated, $operator, $pattern) = $raw_operator =~ m/^\s*(?:(\!)?(?:\@([a-zA-Z]+)\s*)?)?(.*)$/;
+	my ($negated, $operator, $pattern) = $raw_operator =~ m/^\s*(?:(\!)?(?:\@([a-zA-Z0-9]+)\s*)?)?(.*)$/;
 	$operator ||= 'rx';
 
 	my $parsed = {};
@@ -745,7 +772,7 @@ sub translate_operator {
 	$translation->{op_negated} = 1 if $rule->{operator}->{negated};
 
 	# force int
-	$translation->{pattern} += 0 if $translation->{pattern} =~  m/^\d*(?:\.\d+)?$/;
+	$translation->{pattern} = 0 if $translation->{pattern} =~  m/^\d*(?:\.\d+)?$/;
 
 	# this operator reads from a file.
 	# read the file and build the pattern table

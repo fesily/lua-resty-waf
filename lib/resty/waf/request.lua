@@ -6,9 +6,12 @@ local upload	= require "resty.upload"
 local base   = require "resty.waf.base"
 local logger = require "resty.waf.log"
 local util   = require "resty.waf.util"
+local regex = require "resty.waf.regex"
 
 local table_concat = table.concat
 local table_insert = table.insert
+local re_find = regex.find
+local re_match = regex.match
 
 _M.version = base.version
 
@@ -38,7 +41,7 @@ function _M.parse_request_body(waf, request_headers, collections)
 	-- multipart/form-data requests will be streamed in via lua-resty-upload,
 	-- which provides some basic sanity checking as far as form and protocol goes
 	-- (but its much less strict that ModSecurity's strict checking)
-	if ngx.re.find(content_type_header, [=[^multipart/form-data; boundary=]=], waf._pcre_flags) then
+	if re_find(content_type_header, [=[^multipart/form-data; boundary=]=], waf._pcre_flags) then
 		if not waf._process_multipart_body then
 			return
 		end
@@ -126,14 +129,15 @@ function _M.parse_request_body(waf, request_headers, collections)
 		collections.FILES_SIZES = FILES_SIZES
 		collections.FILES_TMP_CONTENT = FILES_TMP_CONTENT
 		collections.FILES_COMBINED_SIZE = files_size
-
+		collections.REQBODY_PROCESSOR =  "MULTIPART"
 		return nil
-	elseif ngx.re.find(content_type_header, [=[^application/x-www-form-urlencoded]=], waf._pcre_flags) then
+	elseif re_find(content_type_header, [=[^application/x-www-form-urlencoded]=], waf._pcre_flags) then
 		-- use the underlying ngx API to read the request body
 		-- ignore processing the request body if the content length is larger than client_body_buffer_size
 		-- to avoid wasting resources on ruleset matching of very large data sets
 		ngx.req.read_body()
 
+		collections.REQBODY_PROCESSOR =  "URLENCODED"
 		if ngx.req.get_body_file() == nil then
 			return ngx.req.get_post_args()
 		else
@@ -180,7 +184,7 @@ function _M.request_uri_raw(request_line, method)
 end
 
 function _M.basename(waf, uri)
-	local m = ngx.re.match(uri, [=[(/[^/]*+)+]=], waf._pcre_flags)
+	local m = re_match(uri, [=[(/[^/]*+)+]=], waf._pcre_flags)
 	return m[1]
 end
 

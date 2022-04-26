@@ -12,6 +12,7 @@ local table_concat  = table.concat
 _M.version = base.version
 
 _M.lookup = {
+	---@param collections WAF.Collections
 	access = function(waf, collections, ctx)
 		local request_headers     = ngx.req.get_headers()
 		local request_var         = ngx.var.request

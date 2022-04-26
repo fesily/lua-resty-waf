@@ -5,13 +5,13 @@ local hdec   = require "resty.htmlentities"
 local ffi    = require "ffi"
 local logger = require "resty.waf.log"
 local util   = require "resty.waf.util"
+local regex = require "resty.waf.regex"
 
 local ffi_cpy    = ffi.copy
 local ffi_new    = ffi.new
 local ffi_str    = ffi.string
 local c_buf_type = ffi.typeof("char[?]")
 
-local string_char   = string.char
 local string_find   = string.find
 local string_gmatch = string.gmatch
 local string_gsub   = string.gsub
@@ -19,6 +19,9 @@ local string_len    = string.len
 local string_lower  = string.lower
 local string_match  = string.match
 local string_sub    = string.sub
+local re_sub = regex.sub
+local re_match = regex.match
+local re_gsub = regex.gsub
 
 ffi.cdef[[
 int js_decode(unsigned char *input, long int input_len);
@@ -87,15 +90,15 @@ _M.lookup = {
 	end,
 	cmd_line = function(waf, value)
 		local str = tostring(value)
-		str = ngx.re.gsub(str, [=[[\\'"^]]=], '',  waf._pcre_flags)
-		str = ngx.re.gsub(str, [=[\s+/]=],    '/', waf._pcre_flags)
-		str = ngx.re.gsub(str, [=[\s+[(]]=],  '(', waf._pcre_flags)
-		str = ngx.re.gsub(str, [=[[,;]]=],    ' ', waf._pcre_flags)
-		str = ngx.re.gsub(str, [=[\s+]=],     ' ', waf._pcre_flags)
+		str = re_gsub(str, [=[[\\'"^]]=], '',  waf._pcre_flags)
+		str = re_gsub(str, [=[\s+/]=],    '/', waf._pcre_flags)
+		str = re_gsub(str, [=[\s+[(]]=],  '(', waf._pcre_flags)
+		str = re_gsub(str, [=[[,;]]=],    ' ', waf._pcre_flags)
+		str = re_gsub(str, [=[\s+]=],     ' ', waf._pcre_flags)
 		return string_lower(str)
 	end,
 	compress_whitespace = function(waf, value)
-		return ngx.re.gsub(value, [=[\s+]=], ' ', waf._pcre_flags)
+		return re_gsub(value, [=[\s+]=], ' ', waf._pcre_flags)
 	end,
 	hex_decode = function(waf, value)
 		return util.hex_decode(value)
@@ -128,8 +131,8 @@ _M.lookup = {
 		return ngx.md5_bin(value)
 	end,
 	normalise_path = function(waf, value)
-		while (ngx.re.match(value, [=[[^/][^/]*/\.\./|/\./|/{2,}]=], waf._pcre_flags)) do
-			value = ngx.re.gsub(value, [=[[^/][^/]*/\.\./|/\./|/{2,}]=], '/', waf._pcre_flags)
+		while (re_match(value, [=[[^/][^/]*/\.\./|/\./|/{2,}]=], waf._pcre_flags)) do
+			value = re_gsub(value, [=[[^/][^/]*/\.\./|/\./|/{2,}]=], '/', waf._pcre_flags)
 		end
 		return value
 	end,
@@ -138,22 +141,22 @@ _M.lookup = {
 		return _M.lookup['normalise_path'](waf, value)
 	end,
 	remove_comments = function(waf, value)
-		return ngx.re.gsub(value, [=[\/\*(\*(?!\/)|[^\*])*\*\/]=], '', waf._pcre_flags)
+		return re_gsub(value, [=[\/\*(\*(?!\/)|[^\*])*\*\/]=], '', waf._pcre_flags)
 	end,
 	remove_comments_char = function(waf, value)
-		return ngx.re.gsub(value, [=[\/\*|\*\/|--|#]=], '', waf._pcre_flags)
+		return re_gsub(value, [=[\/\*|\*\/|--|#]=], '', waf._pcre_flags)
 	end,
 	remove_nulls = function(waf, value)
-		return ngx.re.gsub(value, [[\0]], '', waf._pcre_flags)
+		return re_gsub(value, [[\0]], '', waf._pcre_flags)
 	end,
 	remove_whitespace = function(waf, value)
-		return ngx.re.gsub(value, [=[\s+]=], '', waf._pcre_flags)
+		return re_gsub(value, [=[\s+]=], '', waf._pcre_flags)
 	end,
 	replace_comments = function(waf, value)
-		return ngx.re.gsub(value, [=[\/\*(\*(?!\/)|[^\*])*\*\/]=], ' ', waf._pcre_flags)
+		return re_gsub(value, [=[\/\*(\*(?!\/)|[^\*])*\*\/]=], ' ', waf._pcre_flags)
 	end,
 	replace_nulls = function(waf, value)
-		return ngx.re.gsub(value, [[\0]], ' ', waf._pcre_flags)
+		return re_gsub(value, [[\0]], ' ', waf._pcre_flags)
 	end,
 	sha1 = function(waf, value)
 		return ngx.sha1_bin(value)
@@ -167,13 +170,13 @@ _M.lookup = {
 		end
 	end,
 	trim = function(waf, value)
-		return ngx.re.gsub(value, [=[^\s*|\s+$]=], '')
+		return re_gsub(value, [=[^\s*|\s+$]=], '')
 	end,
 	trim_left = function(waf, value)
-		return ngx.re.sub(value, [=[^\s+]=], '')
+		return re_sub(value, [=[^\s+]=], '')
 	end,
 	trim_right = function(waf, value)
-		return ngx.re.sub(value, [=[\s+$]=], '')
+		return re_sub(value, [=[\s+$]=], '')
 	end,
 	uri_decode = function(waf, value)
 		return ngx.unescape_uri(value)
