@@ -52,6 +52,7 @@ _M.lookup = {
 
 		collections.ARGS_COMBINED_SIZE = query_str_size + body_size
 
+		---@type integer
 		local year, month, day, hour, minute, second = string_match(ngx.localtime(),
 			"(%d%d%d%d)-(%d%d)-(%d%d) (%d%d):(%d%d):(%d%d)")
 

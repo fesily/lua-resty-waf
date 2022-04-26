@@ -2,3 +2,5 @@ perl-lang/
 .vscode/*
 !.vscode/settings.json
 !.vscode/launch.json
+*.so
+*.o

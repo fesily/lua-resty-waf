@@ -81,15 +81,15 @@ decode:
 
 lua-aho-corasick:
 	cd $@ && make
-	cp $@/libac.$(SO_EXT) lib/
+	cp $@/libac.$(SO_EXT) lib/libac.so
 
 lua-resty-htmlentities:
 	cd $@ && make
 	cp $@/lib/resty/htmlentities.lua lib/resty
-	cp $@/libhtmlentities.$(SO_EXT) lib/
+	cp $@/libhtmlentities.$(SO_EXT) lib/libhtmlentities.so
 
 libinjection:
-	cd $@ && make
+	cd $@ && make all
 	cp $@/src/$@.so lib/
 
 test-unit:
