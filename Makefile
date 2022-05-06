@@ -37,7 +37,7 @@ clean: clean-libinjection clean-lua-aho-corasick clean-lua-resty-htmlentities \
 	clean-decode clean-libs clean-test clean-debug-macro
 
 clean-debug-macro:
-	./tools/debug-macro.sh clean
+	./tools/debug-macro.py clean
 
 clean-install: clean-deps
 	cd $(LUA_LIB_DIR) && rm -rf $(RULES) && rm -f $(SO_LIBS) && cd resty/ && \
@@ -73,7 +73,7 @@ clean-test:
 	rm -rf t/servroot*
 
 debug-macro:
-	./tools/debug-macro.sh
+	./tools/debug-macro.py
 
 decode:
 	cd src/ && make
