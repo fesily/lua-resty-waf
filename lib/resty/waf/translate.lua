@@ -88,7 +88,8 @@ local valid_vars = {
 	TX                      = { type = 'TX', storage = true },
 	IP                      = { type = 'IP', storage = true },
 	GLOBAL                  = { type = 'GLOBAL', storage = true },
-	REQBODY_PROCESSOR       = { type = 'REQBODY_PROCESSOR' }
+	REQBODY_PROCESSOR       = { type = 'REQBODY_PROCESSOR' },
+	UNIQUE_ID				= { type = 'UNIQUE_ID'},
 }
 _M.valid_vars = valid_vars
 
@@ -118,6 +119,8 @@ local valid_operators = {
 	verifyCC         = 'VERIFY_CC',
 	within           = 'STR_EXISTS',
 	validateByteRange = 'VALIDATE_BYTE_RANGE',
+	validateUrlEncoding = 'VALIDATE_URL_ENCODING',
+	validateUtf8Encoding = 'VALIDATE_UTF8_ENCODING',
 };
 
 local valid_transforms = {

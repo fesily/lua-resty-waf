@@ -4,3 +4,7 @@ perl-lang/
 !.vscode/launch.json
 *.so
 *.o
+node_modules/
+dist/
+coreruleset/
+.idea/

@@ -13,46 +13,19 @@ local ffi_str    = ffi.string
 local c_buf_type = ffi.typeof("char[?]")
 
 local string_find   = string.find
-local string_gmatch = string.gmatch
 local string_gsub   = string.gsub
 local string_len    = string.len
 local string_lower  = string.lower
-local string_match  = string.match
 local string_sub    = string.sub
 local re_sub = regex.sub
 local re_match = regex.match
 local re_gsub = regex.gsub
 
-ffi.cdef[[
-int js_decode(unsigned char *input, long int input_len);
-int css_decode(unsigned char *input, long int input_len);
-]]
-
 _M.version = base.version
 
 hdec.new() -- load the module on require
 
-local loadlib = function()
-	local so_name = 'libdecode.so'
-	local cpath = package.cpath
-
-    for k, v in string_gmatch(cpath, "[^;]+") do
-        local so_path = string_match(k, "(.*/)")
-        if so_path then
-            -- "so_path" could be nil. e.g, the dir path component is "."
-            so_path = so_path .. so_name
-
-            -- Don't get me wrong, the only way to know if a file exist is
-            -- trying to open it.
-            local f = io.open(so_path)
-            if f ~= nil then
-                io.close(f)
-                return ffi.load(so_path)
-            end
-        end
-    end
-end
-local decode_lib = loadlib()
+local decode_lib = require ("resty.waf.libdecode")
 
 local function decode_buf_helper(value, len)
 	local buf = ffi_new(c_buf_type, len)

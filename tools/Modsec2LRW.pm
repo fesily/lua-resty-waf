@@ -90,6 +90,7 @@ my $valid_vars = {
 	IP                      => { type => 'IP', storage => 1 },
 	#GLOBAL                  => { type => 'GLOBAL', storage => 1 },
 	REQBODY_PROCESSOR		=> { type => 'REQBODY_PROCESSOR' },
+	UNIQUE_ID				=> { type => 'UNIQUE_ID'},
 };
 
 my $valid_operators = {
@@ -116,7 +117,9 @@ my $valid_operators = {
 	strmatch         => 'STR_MATCH',
 	verifyCC         => 'VERIFY_CC',
 	within           => 'STR_EXISTS',
-	validateByteRange => 'VALIDATE_BYTE_RANGE'
+	validateByteRange => 'VALIDATE_BYTE_RANGE',
+	validateUrlEncoding => 'VALIDATE_URL_ENCODING',
+	validateUtf8Encoding => 'VALIDATE_UTF8_ENCODING',
 };
 
 my $valid_transforms = {
@@ -862,10 +865,11 @@ sub translate_actions {
 		} elsif (grep { $_ eq $key } @direct_translation_actions) {
 			$translation->{$key} = $value;
 		} elsif ($key eq 'capture') {
-			$translation->{operator} eq 'REFIND' ?
-				$translation->{operator} = 'REGEX' :
-				warn 'capture set when translated operator was not REFIND';
-
+			if ($translation->{operator} eq 'REFIND'){
+				$translation->{operator} = 'REGEX';
+			}elsif ($translation->{operator} ne 'PM'){
+				warn "capture set when translated operator was not REFIND:$translation->{operator},id:$translation->{id}" ;
+			}
 		} elsif ($key eq 'ctl') {
 			my ($opt, $data) = split /=/, $value;
 

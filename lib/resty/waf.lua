@@ -1,4 +1,5 @@
 ---@class WAF
+---@field _storage_redis_setkey table<string, any>
 local _M = {}
 
 local actions       = require "resty.waf.actions"
@@ -14,6 +15,7 @@ local storage       = require "resty.waf.storage"
 local transform_t   = require "resty.waf.transform"
 local translate     = require "resty.waf.translate"
 local util          = require "resty.waf.util"
+local cjson         = require "cjson"
 
 local table_insert = table.insert
 local table_sort   = table.sort
@@ -33,6 +35,7 @@ _M.version = base.version
 
 -- default list of rulesets
 local _global_rulesets = {
+	--[[
 	"11000_whitelist",
 	"20000_http_violation",
 	"21000_http_anomaly",
@@ -42,13 +45,55 @@ local _global_rulesets = {
 	"42000_xss",
 	"90000_custom",
 	"99000_scoring"
+]]
+	"attack-lfi",
+	"attack-rfi",
+	"attack-rce",
+	"attack-php",
+	"attack-generic",
+	"attack-xss",
+	"attack-sqli",
+	"attack-session-fixation",
+	"attack-java",
 }
 _M.global_rulesets = _global_rulesets
 
 -- ruleset table cache
----@type table<string,table<string,{[integer]:WAF.Rule}>>
+---@type table<string,WAF.PhaseRuleset>
 local _ruleset_defs = {}
+---@type table<string,WAF.Rule>
+local _id_rules = {}
 local _ruleset_def_cnt = 0
+
+---@param rule WAF.Rule
+local function get_ruleset(rule)
+	for _, ruleset in pairs(_ruleset_defs) do
+		for _, rules in pairs(ruleset) do
+			local first_id, last_id
+
+			for _, rule in ipairs(rules) do
+				first_id = tonumber(rule.id)
+				if first_id ~= nil then
+					break
+				end
+			end
+			for i = #rules, 0, -1 do
+				last_id = tonumber(rules[i].id)
+				if last_id ~= nil then
+					break
+				end
+			end
+			if rule.id >= first_id and rule.id <= last_id then
+				for i, v in ipairs(rules) do
+					if v.id == rule.id then
+						return rules, i
+					end
+				end
+			end
+		end
+	end
+	return nil, 0
+end
 
 -- lookup tables for msg and tag exceptions
 -- public so it can be accessed via metatable
@@ -65,9 +110,9 @@ local function _build_exception_table()
 	-- build a rule.id -> { rule.id, ... } lookup table based on the exception
 	-- action for the rule
 
-	for r, ruleset in pairs(_ruleset_defs) do
-		for phase, rules in pairs(ruleset) do
-			for i, rule in ipairs(rules) do
+	for _, ruleset in pairs(_ruleset_defs) do
+		for _, rules in pairs(ruleset) do
+			for _, rule in ipairs(rules) do
 				util.rule_exception(_M._meta_exception, rule)
 			end
 		end
@@ -75,6 +120,7 @@ local function _build_exception_table()
 end
 
 -- get a subset or superset of request data collection
+---@param collection any[]|any
 local function _parse_collection(self, collection, var)
 	local parse = var.parse
 
@@ -220,12 +266,12 @@ local function _do_transform(self, collection, transform)
 end
 
 ---@param self WAF
----@param rule WAF.Rule
----@param var WAF.Variable
+---@param var WAF.Rule.Variable
 ---@param collections WAF.Collections
 ---@param ctx WAF.Ctx
 ---@param opts WAF.Rule.Options
-local function _build_collection(self, rule, var, collections, ctx, opts)
+---@param transform? string[]|string
+local function _build_collection(self, var, collections, ctx, opts, transform)
 	if var.unconditional then
 		return true
 	end
@@ -240,8 +286,9 @@ local function _build_collection(self, rule, var, collections, ctx, opts)
 		--_LOG_"Collection cache miss"
 		collection = _parse_collection(self, collections[var.type], var)
 
-		if opts.transform then
-			collection = _do_transform(self, collection, opts.transform)
+		transform = transform or (opts and opts.transform)
+		if transform then
+			collection = _do_transform(self, collection, transform)
 		end
 
 		ctx.transform[collection_key]     = collection
@@ -257,7 +304,7 @@ local function _build_collection(self, rule, var, collections, ctx, opts)
 	if var.length then
 		if type(collection) == 'table' then
 			collection = #collection
-		elseif(collection) then
+		elseif (collection) then
 			collection = 1
 		else
 			collection = 0
@@ -276,6 +323,7 @@ local function _process_rule(self, rule, collections, ctx)
 	local opts    = rule.opts or {}
 	local pattern = rule.pattern
 	local offset  = rule.offset_nomatch
+	local match   = false
 
 	ctx.id = rule.id
 
@@ -286,7 +334,7 @@ local function _process_rule(self, rule, collections, ctx)
 			var = self.target_update_map[rule.id][k]
 		end
 
-		local collection = _build_collection(self, rule, var, collections, ctx, opts)
+		local collection = _build_collection(self, var, collections, ctx, opts, opts.transform)
 
 		if not collection then
 			--_LOG_"No values for this collection"
@@ -297,7 +345,7 @@ local function _process_rule(self, rule, collections, ctx)
 				pattern = util.parse_dynamic_value(self, pattern, collections)
 			end
 
-			local match, value
+			local value
 
 			if var.unconditional then
 				match = true
@@ -361,7 +409,7 @@ local function _process_rule(self, rule, collections, ctx)
 	end
 
 	--_LOG_"Returning offset " .. tostring(offset)
-	return offset
+	return offset, match
 end
 
 -- calculate rule jump offsets
@@ -372,6 +420,20 @@ local function _calculate_offset(ruleset)
 		else
 			ruleset[phase] = {}
 		end
+	end
+end
+
+---@param k string
+---@param rs WAF.Ruleset
+local function _set_ruleset(k, rs)
+	--_LOG_"Doing offset calculation of " .. k
+	_calculate_offset(rs)
+
+	_ruleset_defs[k] = rs
+	_ruleset_def_cnt = _ruleset_def_cnt + 1
+
+	for _, rule in ipairs(rs) do
+		_id_rules[rule.id] = rule
 	end
 end
 
@@ -405,11 +467,7 @@ local function _merge_rulesets(self)
 				if err then
 					logger.fatal_fail("Could not load " .. k)
 				else
-					--_LOG_"Doing offset calculation of " .. k
-					_calculate_offset(rs)
-
-					_ruleset_defs[k] = rs
-					_ruleset_def_cnt = _ruleset_def_cnt + 1
+					_set_ruleset(k, rs)
 
 					rebuild_exception_table = true
 				end
@@ -431,6 +489,152 @@ local function _merge_rulesets(self)
 	-- rulesets will be processed in numeric order
 	table_sort(t)
 	return t
+end
+
+local function get_rulesets(ruleset)
+	local rs = _ruleset_defs[ruleset]
+
+	if not rs then
+		local err
+		rs, err = util.load_ruleset_file(ruleset)
+
+		if err then
+			logger.fatal_fail(err)
+		else
+			_set_ruleset(ruleset, rs)
+
+			_build_exception_table()
+		end
+	end
+	return rs
+end
+
+local _cache_transform = {}
+local _cache_var = {}
+---@param self WAF
+---@param collections WAF.Collections
+---@param ctx WAF.Ctx
+---@param rs WAF.ParallelRuleset
+local function _exe_parallel_ruleset(self, collections, ctx, rs)
+	for transformString, v in pairs(rs) do
+		local transform = _cache_transform[transformString]
+		if not transform then
+			transform = cjson.decode(transformString)
+			_cache_transform[transformString] = transform
+		end
+		for varString, parallelrule in pairs(v) do
+			---@type WAF.Rule.Variable
+			local var = _cache_var[varString]
+			if not var then
+				var = cjson.decode(varString)
+				_cache_var[varString] = var
+			end
+			local collection = _build_collection(self, var, collections, ctx, nil, transform)
+			if not collection then
+				--_LOG_"No values for this collection"
+			else
+				local match, value = operators.parallel_lookup[parallelrule.operator](self, collection, parallelrule, ctx)
+
+				if match then
+					local id = value
+					--TODO check初始化rule
+					---@type WAF.Rule
+					local rule = _id_rules[id]
+					local opts = rule.opts or {}
+					--_LOG_"Match of rule " .. rule.id
+
+					-- store this match as the most recent match
+					collections.MATCHED_VAR      = value or ''
+					collections.MATCHED_VAR_NAME = var.type
+
+					-- also add the match to our list of matches for the transaction
+					if value then
+						local match_n = ctx.match_n + 1
+						collections.MATCHED_VARS[match_n] = value
+						collections.MATCHED_VAR_NAMES[match_n] = var
+						ctx.match_n = match_n
+					end
+
+					-- auto populate collection elements
+					if rule.operator == "REGEX" then
+						collections.TX["0"] = value[0]
+						for i in ipairs(value) do
+							collections.TX[tostring(i)] = value[i]
+						end
+					else
+						collections.TX["0"] = value
+					end
+					collections.RULE = rule
+
+					local nondisrupt = rule.actions.nondisrupt or {}
+					for _, action in ipairs(nondisrupt) do
+						actions.nondisruptive_lookup[action.action](self, action.data, ctx, collections)
+					end
+
+					-- log the event
+					if rule.actions.disrupt ~= "CHAIN" and not opts.nolog then
+						_log_event(self, rule, value, ctx)
+					end
+
+					-- wrapper for the rules action
+					_rule_action(self, rule.actions.disrupt, ctx, collections)
+
+					if rule.actions.disrupt == 'CHAIN' then
+						-- 直接运行连续的代码段
+						--TODO check初始化rs以及offset
+						local rs, offset = get_ruleset(rule)
+						local returned_offset, match = _process_rule(self, rule, collections, ctx)
+						while match do
+							rule = rs[offset + returned_offset]
+							if rule then
+								returned_offset, match = _process_rule(self, rule, collections, ctx)
+							end
+						end
+					end
+					break
+				end
+			end
+		end
+	end
+end
+
+---@param self WAF
+---@param collections WAF.Collections
+---@param ctx WAF.Ctx
+---@param rs WAF.Ruleset
+local function _exe_global_ruleset(self, collections, ctx, rs)
+	--_LOG_"Beginning ruleset " .. ruleset
+
+	local offset = 1
+	---@type WAF.Rule
+	local rule = rs[offset]
+
+	while rule do
+		if not util.table_has_key(rule.id, self._ignore_rule) then
+			--_LOG_"Processing rule " .. rule.id
+
+			local returned_offset = _process_rule(self, rule, collections, ctx)
+			if returned_offset then
+				offset = offset + returned_offset
+			else
+				offset = nil
+			end
+		else
+			--_LOG_"Ignoring rule " .. rule.id
+
+			local rule_nomatch = rule.offset_nomatch
+
+			if rule_nomatch then
+				offset = offset + rule_nomatch
+			else
+				offset = nil
+			end
+		end
+
+		if not offset then break end
+
+		rule = rs[offset]
+	end
 end
 
 -- main entry point
@@ -468,9 +672,10 @@ function _M.exec(self, opts)
 
 	-- pre-initialize the TX collection
 	ctx.storage["TX"]    = ctx.storage["TX"] or {}
+	--TODO 加载fix init function
 	ctx.col_lookup["TX"] = "TX"
-	ctx.altered = false
-	ctx.short_circuit = false
+	ctx.altered          = false
+	ctx.short_circuit    = false
 
 	-- see https://groups.google.com/forum/#!topic/openresty-en/LVR9CjRT5-Y
 	-- also https://github.com/p0pr0ck5/lua-resty-waf/issues/229
@@ -523,61 +728,14 @@ function _M.exec(self, opts)
 		self._storage_redis_setkey   = {}
 	end
 
+	_exe_global_ruleset(self, collections, ctx, get_rulesets("init")[phase])
 	--_LOG_"Beginning run of phase " .. phase
-
+	_exe_parallel_ruleset(self, collections, ctx, self._parallel_ruleset[phase])
 	for _, ruleset in ipairs(self._active_rulesets) do
-		--_LOG_"Beginning ruleset " .. ruleset
-
-		local rs = _ruleset_defs[ruleset]
-
-		if not rs then
-			local err
-			rs, err = util.load_ruleset_file(ruleset)
-
-			if err then
-				logger.fatal_fail(err)
-			else
-				--_LOG_"Doing offset calculation of " .. ruleset
-				_calculate_offset(rs)
-
-				_ruleset_defs[ruleset] = rs
-				_ruleset_def_cnt = _ruleset_def_cnt + 1
-
-				_build_exception_table()
-			end
-		end
-
-		local offset = 1
-		---@type WAF.Rule
-		local rule = rs[phase][offset]
-
-		while rule do
-			if not util.table_has_key(rule.id, self._ignore_rule) then
-				--_LOG_"Processing rule " .. rule.id
-
-				local returned_offset = _process_rule(self, rule, collections, ctx)
-				if returned_offset then
-					offset = offset + returned_offset
-				else
-					offset = nil
-				end
-			else
-				--_LOG_"Ignoring rule " .. rule.id
-
-				local rule_nomatch = rule.offset_nomatch
-
-				if rule_nomatch then
-					offset = offset + rule_nomatch
-				else
-					offset = nil
-				end
-			end
-
-			if not offset then break end
-
-			rule = rs[phase][offset]
-		end
+		_exe_global_ruleset(self, collections, ctx, get_rulesets(ruleset))
 	end
+
+	_exe_global_ruleset(self, collections, ctx, get_rulesets("finalize")[phase])
 
 	_finalize(self, ctx)
 end
@@ -687,17 +845,12 @@ function _M.init()
 	-- this is also lazily handled in exec() for rulesets
 	-- that dont appear here
 	for _, ruleset in ipairs(_global_rulesets) do
-		local rs, err, calc
-
-		rs, err = util.load_ruleset_file(ruleset)
+		local rs, err = util.load_ruleset_file(ruleset)
 
 		if err then
 			ngx.log(ngx.ERR, err)
 		else
-			_calculate_offset(rs)
-
-			_ruleset_defs[ruleset] = rs
-			_ruleset_def_cnt = _ruleset_def_cnt + 1
+			_set_ruleset(ruleset, rs)
 
 			_build_exception_table()
 		end
@@ -736,10 +889,7 @@ function _M.load_secrules(ruleset, opts, err_tab)
 
 	local name = string.gsub(ruleset, "(.*/)(.*)", "%2")
 
-	_calculate_offset(chains)
-
-	_ruleset_defs[name] = chains
-	_ruleset_def_cnt = _ruleset_def_cnt + 1
+	_set_ruleset(name, chains)
 end
 
 -- add extra sieve elements to a rule on a per-instance basis
@@ -788,10 +938,9 @@ function _M.sieve_rule(self, id, sieves)
 				end
 
 				-- set/update the var's collection key
-				self.target_update_map[id][i].collection_key =
-					calc.build_collection_key(
-						self.target_update_map[id][i],
-						orig_rule.opts.transform)
+				self.target_update_map[id][i].collection_key = calc.build_collection_key(
+					self.target_update_map[id][i],
+					orig_rule.opts.transform)
 
 				found = true
 				break
@@ -859,7 +1008,7 @@ function _M.write_log_events(self, has_ctx, ctx)
 			entry.ngx[k] = ngx.var[k]
 		end
 	end
-	
+
 	logger.write_log_events[self._event_log_target](self, entry)
 end
 

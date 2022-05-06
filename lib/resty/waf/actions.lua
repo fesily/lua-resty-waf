@@ -51,6 +51,7 @@ _M.nondisruptive_lookup = {
 
 		storage.expire_var(waf, ctx, data, time)
 	end,
+	---@param ctx WAF.Ctx
 	initcol = function(waf, data, ctx, collections)
 		local col    = data.col
 		local value  = data.value

@@ -1,5 +1,5 @@
 ---@class WAF.Collections
----@field TX string
+---@field TX WAF.Collections.Tx
 ---@field IP string
 ---@field GLOBAL string
 ---@field REQBODY_PROCESSOR string
@@ -43,19 +43,20 @@
 ---@field FILES_SIZES table
 ---@field FILES_TMP_CONTENT table
 
----@class WAF.Data
+---@class WAF.Rule.Data
 ---@field col string
 ---@field key string
 ---@field value any
+---@field inc boolean?
 
----@class WAF.Variable
+---@class WAF.Rule.Variable
 ---@field length integer?
 ---@field type string
 ---@field storage boolean?
 ---@field parse string[]?
 ---@field unconditional boolean?
 ---@field ignore any[]?
----@field collection_key string
+---@field collection_key string --used to cache collection key
 
 ---@class WAF.Rule.Options
 ---@field nolog boolean?
@@ -66,15 +67,37 @@
 ---@field id integer
 ---@field offset_match integer
 ---@field offset_nomatch integer
----@field actions {disrupt:string,nondisrupt:{action:string,data:WAF.Data|any}[]}
+---@field actions {disrupt:string,nondisrupt:{action:string,data:WAF.Rule.Data|any}[]}
 ---@field operator string
 ---@field opts WAF.Rule.Options
 ---@field pattern string|string[]
 ---@field msg string
 ---@field severity string
 ---@field ver string[]
----@field vars WAF.Variable[]
+---@field vars WAF.Rule.Variable[]
 ---@field tag string[]
 ---@field op_negated boolean
 ---@field skip_after string?
 ---@field skip integer?
+
+---@class WAF.Collections.Tx
+---@field ["0"] string
+---@field ["1"] string
+---@field ["2"] string
+
+---@alias WAF.Ruleset WAF.Rule[]
+
+---@alias WAF.TransformString string
+---@alias WAF.VarString string
+
+---@class WAF.ParallelRuleset.Rule
+---@field ids integer[]
+---@field patterns string[]
+---@field operator string
+---@field __cacheCompiler fun(self:WAF.ParallelRuleset.Rule)?
+
+---@alias WAF.ParallelRuleset.Variable table<WAF.VarString,WAF.ParallelRuleset.Rule>
+
+---@alias WAF.ParallelRuleset table<WAF.TransformString,WAF.ParallelRuleset.Variable>
+
+---@alias WAF.PhaseRuleset table<ngx.phase.name,WAF.Ruleset>

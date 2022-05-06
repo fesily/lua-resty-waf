@@ -9,12 +9,13 @@ local libinject = require "resty.libinjection"
 local logger    = require "resty.waf.log"
 local util      = require "resty.waf.util"
 local regex     = require "resty.waf.regex"
+local libdecode = require "resty.waf.libdecode"
 
 local string_find = string.find
 local string_gsub = string.gsub
 local string_sub  = string.sub
-local re_find = regex.find
-local re_match = regex.match
+local re_find     = regex.find
+local re_match    = regex.match
 
 local band, bor, bxor = bit.band, bit.bor, bit.bxor
 
@@ -277,8 +278,8 @@ function _M.ac_lookup(needle, haystack, ctx)
 		match = ac.match(_ac, needle)
 
 		if match then
+			value = haystack[match + 1]
 			match = true
-			value = needle
 		end
 	end
 
@@ -424,7 +425,7 @@ function _M.str_match(input, pattern)
 		local char = {}
 
 		for k = 0, 255 do char[k] = m end
-		for k = 1, m-1 do char[pattern:sub(k, k):byte()] = m - k end
+		for k = 1, m - 1 do char[pattern:sub(k, k):byte()] = m - k end
 
 		local k = m
 		while k <= n do
@@ -538,7 +539,7 @@ function _M.validate_byterange(input, range_pattern, ctx)
 			end
 		end
 	else
-		for pos = 1,#input do
+		for pos = 1, #input do
 			local match = false
 			for _, range in ipairs(ranges) do
 				if type(range) == 'table' then
@@ -551,7 +552,7 @@ function _M.validate_byterange(input, range_pattern, ctx)
 				elseif input:byte(pos) == range then
 					match = true
 				end
-			 end
+			end
 
 			if match == false then
 				return true, input
@@ -562,27 +563,93 @@ function _M.validate_byterange(input, range_pattern, ctx)
 	return false, input
 end
 
+function _M.validate_urlencoding(waf, pattern)
+	local len = #pattern
+	if len == 0 then
+		return false
+	end
+	local rc = libdecode.validate_url_encoding(pattern, len)
+	if rc == 1 then
+		--_LOG_"Valid URL Encoding at '" .. pattern .. "'"
+		return false
+	elseif rc == -2 then
+		--_LOG_"Invalid URL Encoding: Non-hexadecimal digits used at '" .. input .. "'"
+		return true
+	elseif rc == -3 then
+		--_LOG_"Invalid URL Encoding: Not enough characters at the end of input at '" .. input .. "'"
+		return true
+	else
+		--_LOG_"Invalid URL Encoding: Internal Error (rc = " .. rc .. ") at '" .. input .. "'"
+		return true
+	end
+	return false
+end
+
+function _M.validate_utf8encoding(waf, pattern)
+	local rc = libdecode.validate_utf8_encoding(pattern, #pattern)
+	if rc == -1 then
+		--_LOG_"Invalid UTF-8 encoding: not enough bytes in character at " ..pattern
+		return true
+	elseif rc == -2 then
+		--_LOG_"Invalid UTF-8 encoding: invalid byte value in character at " ..pattern
+		return true
+	elseif rc == -3 then
+		--_LOG_"Invalid UTF-8 encoding: overlong character detected at " ..pattern
+		return true
+	elseif rc == -4 then
+		--_LOG_"Invalid UTF-8 encoding: use of restricted character at " ..pattern
+		return true
+	elseif rc == -5 then
+		--_LOG_"Invalid UTF-8 encoding at " ..pattern
+		return true
+	else
+		--_LOG_"Internal error during UTF-8 validation at" ..pattern
+		return true
+	end
+	return false
+end
 
 _M.lookup = {
-	REGEX        = function(waf, collection, pattern) return _M.regex(waf, collection, pattern) end,
-	REFIND       = function(waf, collection, pattern) return _M.refind(waf, collection, pattern) end,
-	EQUALS       = function(waf, collection, pattern) return _M.equals(collection, pattern) end,
-	GREATER      = function(waf, collection, pattern) return _M.greater(collection, pattern) end,
-	LESS         = function(waf, collection, pattern) return _M.less(collection, pattern) end,
-	GREATER_EQ   = function(waf, collection, pattern) return _M.greater_equals(collection, pattern) end,
-	LESS_EQ      = function(waf, collection, pattern) return _M.less_equals(collection, pattern) end,
-	EXISTS       = function(waf, collection, pattern) return _M.exists(collection, pattern) end,
-	CONTAINS     = function(waf, collection, pattern) return _M.contains(collection, pattern) end,
-	STR_EXISTS   = function(waf, collection, pattern) return _M.str_find(waf, pattern, collection) end,
-	STR_CONTAINS = function(waf, collection, pattern) return _M.str_find(waf, collection, pattern) end,
-	PM           = function(waf, collection, pattern, ctx) return _M.ac_lookup(collection, pattern, ctx) end,
-	CIDR_MATCH   = function(waf, collection, pattern) return _M.cidr_match(collection, pattern) end,
-	RBL_LOOKUP   = function(waf, collection, pattern, ctx) return _M.rbl_lookup(waf, collection, pattern, ctx) end,
-	DETECT_SQLI  = function(waf, collection, pattern) return _M.detect_sqli(collection) end,
-	DETECT_XSS   = function(waf, collection, pattern) return _M.detect_xss(collection) end,
-	STR_MATCH    = function(waf, collection, pattern) return _M.str_match(collection, pattern) end,
-	VERIFY_CC    = function(waf, collection, pattern) return _M.verify_cc(waf, collection, pattern) end,
-	VALIDATE_BYTE_RANGE = function(waf, collection, pattern) return _M.validate_byterange(waf, collection, pattern) end,
+	REGEX                  = function(waf, collection, pattern) return _M.regex(waf, collection, pattern) end,
+	REFIND                 = function(waf, collection, pattern) return _M.refind(waf, collection, pattern) end,
+	EQUALS                 = function(waf, collection, pattern) return _M.equals(collection, pattern) end,
+	GREATER                = function(waf, collection, pattern) return _M.greater(collection, pattern) end,
+	LESS                   = function(waf, collection, pattern) return _M.less(collection, pattern) end,
+	GREATER_EQ             = function(waf, collection, pattern) return _M.greater_equals(collection, pattern) end,
+	LESS_EQ                = function(waf, collection, pattern) return _M.less_equals(collection, pattern) end,
+	EXISTS                 = function(waf, collection, pattern) return _M.exists(collection, pattern) end,
+	CONTAINS               = function(waf, collection, pattern) return _M.contains(collection, pattern) end,
+	STR_EXISTS             = function(waf, collection, pattern) return _M.str_find(waf, pattern, collection) end,
+	STR_CONTAINS           = function(waf, collection, pattern) return _M.str_find(waf, collection, pattern) end,
+	PM                     = function(waf, collection, pattern, ctx) return _M.ac_lookup(collection, pattern, ctx) end,
+	CIDR_MATCH             = function(waf, collection, pattern) return _M.cidr_match(collection, pattern) end,
+	RBL_LOOKUP             = function(waf, collection, pattern, ctx) return _M.rbl_lookup(waf, collection, pattern, ctx) end,
+	DETECT_SQLI            = function(waf, collection, pattern) return _M.detect_sqli(collection) end,
+	DETECT_XSS             = function(waf, collection, pattern) return _M.detect_xss(collection) end,
+	STR_MATCH              = function(waf, collection, pattern) return _M.str_match(collection, pattern) end,
+	VERIFY_CC              = function(waf, collection, pattern) return _M.verify_cc(waf, collection, pattern) end,
+	VALIDATE_BYTE_RANGE    = function(waf, collection, pattern) return _M.validate_byterange(waf, collection, pattern) end,
+	VALIDATE_URL_ENCODING  = function(waf, collection, pattern) return _M.validate_urlencoding(waf, pattern) end,
+	VALIDATE_UTF8_ENCODING = function(waf, collection, pattern) return _M.validate_utf8encoding(waf, pattern) end,
+}
+
+---comment
+---@param waf WAF
+---@param collection WAF.Collections
+---@param rule WAF.ParallelRuleset.Rule
+---@param ctx WAF.Ctx
+function _M.hyperscan(waf, collection, rule, ctx)
+	if not rule.__cacheCompiler then
+		rule.__cacheCompiler = {}
+	end
+
+	local id = rule.ids[rule.__cacheCompiler(rule.patterns)]
+	return id ~= nil, id
+end
+
+_M.parallel_lookup = {
+	REFIND = _M.hyperscan,
+	AC = function(waf, collection, rule, ctx) end,
 }
 
 return _M
