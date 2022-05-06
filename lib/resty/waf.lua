@@ -638,7 +638,7 @@ local function _exe_global_ruleset(self, collections, ctx, rs)
 end
 
 -- main entry point
-function _M.exec(self, opts)
+function _M.exec(self, opts, ngx_ctx)
 	if self._mode == "INACTIVE" then
 		--_LOG_"Operational mode is INACTIVE, not running"
 		return
@@ -654,7 +654,7 @@ function _M.exec(self, opts)
 
 
 	---@class WAF.Ctx
-	local ctx         = ngx.ctx.lua_resty_waf or tab_new(0, 20)
+	local ctx         = ngx_ctx.lua_resty_waf or tab_new(0, 20)
 	---@type WAF.Collections
 	local collections = ctx.collections or tab_new(0, 41)
 
@@ -743,8 +743,8 @@ function _M.exec(self, opts)
 end
 
 -- instantiate a new instance of the module
-function _M.new()
-	local ctx = ngx.ctx.lua_resty_waf or tab_new(0, 21)
+function _M.new(ngx_ctx)
+	local ctx = ngx_ctx.lua_resty_waf or tab_new(0, 21)
 
 	-- restore options and self from a previous phase
 	if ctx.opts then
