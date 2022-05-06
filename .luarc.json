@@ -25,7 +25,8 @@
             "unused-label": "Warning",
             "code-after-break": "Warning",
             "empty-block": "Warning",
-            "trailing-space": "Warning"
+            "trailing-space": "Warning",
+            "undefined-global": "Error"
         }
     }
 }

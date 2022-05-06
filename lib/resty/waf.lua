@@ -425,8 +425,10 @@ end
 
 ---@param k string
 ---@param rs WAF.Ruleset
-local function _set_ruleset(k, rs)
-	--_LOG_"Doing offset calculation of " .. k
+local function _set_ruleset(self, k, rs)
+	if self then
+		--_LOG_"Doing offset calculation of " .. k
+	end
 	_calculate_offset(rs)
 
 	_ruleset_defs[k] = rs
@@ -467,7 +469,7 @@ local function _merge_rulesets(self)
 				if err then
 					logger.fatal_fail("Could not load " .. k)
 				else
-					_set_ruleset(k, rs)
+					_set_ruleset(self, k, rs)
 
 					rebuild_exception_table = true
 				end
@@ -491,7 +493,7 @@ local function _merge_rulesets(self)
 	return t
 end
 
-local function get_rulesets(ruleset)
+local function get_rulesets(self, ruleset)
 	local rs = _ruleset_defs[ruleset]
 
 	if not rs then
@@ -501,7 +503,7 @@ local function get_rulesets(ruleset)
 		if err then
 			logger.fatal_fail(err)
 		else
-			_set_ruleset(ruleset, rs)
+			_set_ruleset(self, ruleset, rs)
 
 			_build_exception_table()
 		end
@@ -603,8 +605,6 @@ end
 ---@param ctx WAF.Ctx
 ---@param rs WAF.Ruleset
 local function _exe_global_ruleset(self, collections, ctx, rs)
-	--_LOG_"Beginning ruleset " .. ruleset
-
 	local offset = 1
 	---@type WAF.Rule
 	local rule = rs[offset]
@@ -732,6 +732,8 @@ function _M.exec(self, opts)
 	--_LOG_"Beginning run of phase " .. phase
 	_exe_parallel_ruleset(self, collections, ctx, self._parallel_ruleset[phase])
 	for _, ruleset in ipairs(self._active_rulesets) do
+		--_LOG_"Beginning ruleset " .. ruleset
+
 		_exe_global_ruleset(self, collections, ctx, get_rulesets(ruleset))
 	end
 
@@ -850,7 +852,7 @@ function _M.init()
 		if err then
 			ngx.log(ngx.ERR, err)
 		else
-			_set_ruleset(ruleset, rs)
+			_set_ruleset(nil, ruleset, rs)
 
 			_build_exception_table()
 		end
@@ -858,7 +860,7 @@ function _M.init()
 end
 
 -- translate and add a SecRule files to ruleset defs
-function _M.load_secrules(ruleset, opts, err_tab)
+function _M.load_secrules(self, ruleset, opts, err_tab)
 	local rules_tab = {}
 	local rules_cnt = 0
 	local f = assert(io.open(ruleset, 'r'))
@@ -889,7 +891,7 @@ function _M.load_secrules(ruleset, opts, err_tab)
 
 	local name = string.gsub(ruleset, "(.*/)(.*)", "%2")
 
-	_set_ruleset(name, chains)
+	_set_ruleset(self, name, chains)
 end
 
 -- add extra sieve elements to a rule on a per-instance basis

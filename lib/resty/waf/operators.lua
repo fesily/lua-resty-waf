@@ -573,13 +573,13 @@ function _M.validate_urlencoding(waf, pattern)
 		--_LOG_"Valid URL Encoding at '" .. pattern .. "'"
 		return false
 	elseif rc == -2 then
-		--_LOG_"Invalid URL Encoding: Non-hexadecimal digits used at '" .. input .. "'"
+		--_LOG_"Invalid URL Encoding: Non-hexadecimal digits used at '" .. pattern .. "'"
 		return true
 	elseif rc == -3 then
-		--_LOG_"Invalid URL Encoding: Not enough characters at the end of input at '" .. input .. "'"
+		--_LOG_"Invalid URL Encoding: Not enough characters at the end of input at '" .. pattern .. "'"
 		return true
 	else
-		--_LOG_"Invalid URL Encoding: Internal Error (rc = " .. rc .. ") at '" .. input .. "'"
+		--_LOG_"Invalid URL Encoding: Internal Error (rc = " .. rc .. ") at '" .. pattern .. "'"
 		return true
 	end
 	return false
