@@ -728,7 +728,7 @@ function _M.exec(self, opts)
 		self._storage_redis_setkey   = {}
 	end
 
-	_exe_global_ruleset(self, collections, ctx, get_rulesets("init")[phase])
+	_exe_global_ruleset(self, collections, ctx, get_rulesets("initlize")[phase])
 	--_LOG_"Beginning run of phase " .. phase
 	_exe_parallel_ruleset(self, collections, ctx, self._parallel_ruleset[phase])
 	for _, ruleset in ipairs(self._active_rulesets) do
