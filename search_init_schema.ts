@@ -4,7 +4,6 @@ import linq from 'linq'
 import { promisify } from 'util'
 import { assert } from 'console'
 import path from 'path'
-import { resourceLimits } from 'worker_threads'
 
 function deep_clone<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj))

@@ -74,6 +74,7 @@ clean-test:
 
 transform_coreruleset:
 	./tools/parser.py
+	node --experimental-specifier-resolution=node --loader ts-node/esm search_init_schema.ts
 
 debug-macro:
 	./tools/debug-macro.py
