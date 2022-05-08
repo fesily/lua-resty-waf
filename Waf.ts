@@ -6,11 +6,13 @@ export namespace WAF {
         operator: Rule.operator;
         op_negated?: boolean;
         opts: Rule.Opts;
-        pattern: string;
+        pattern: string | string[];
         vars: Rule.Var[];
         ver: string;
         skip_after?: string;
         tag?: string[];
+        attack_tag?: string;
+        paranoia_level?:number;
     }
     export namespace Rule {
         export enum transform {

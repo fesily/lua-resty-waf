@@ -4,7 +4,7 @@ local base      = require "resty.waf.base"
 local logger    = require "resty.waf.log"
 local request   = require "resty.waf.request"
 local util      = require "resty.waf.util"
-local uuid = require 'resty.jit-uuid'
+
 local string_format = string.format
 local string_match  = string.match
 local table_concat  = table.concat
@@ -12,7 +12,9 @@ local table_concat  = table.concat
 _M.version = base.version
 
 _M.lookup = {
+	---@param waf WAF
 	---@param collections WAF.Collections
+	---@param ctx WAF.Ctx
 	access = function(waf, collections, ctx)
 		local request_headers     = ngx.req.get_headers()
 		local request_var         = ngx.var.request
@@ -64,7 +66,7 @@ _M.lookup = {
 		collections.TIME_MON          = month
 		collections.TIME_SEC          = second
 		collections.TIME_YEAR         = year
-		collections.UNIQUE_ID   = uuid.generate_v5()
+		collections.UNIQUE_ID  = waf.transaction_id
 	end,
 	header_filter = function(waf, collections)
 		local response_headers = ngx.resp.get_headers()

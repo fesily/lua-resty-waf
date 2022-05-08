@@ -10,6 +10,8 @@ local logger    = require "resty.waf.log"
 local util      = require "resty.waf.util"
 local regex     = require "resty.waf.regex"
 local libdecode = require "resty.waf.libdecode"
+local hyperscan = require "resty.hyperscan"
+local md5       = require "resty.md5":new()
 
 local string_find = string.find
 local string_gsub = string.gsub
@@ -21,6 +23,9 @@ local band, bor, bxor = bit.band, bit.bor, bit.bxor
 
 -- module-level cache of aho-corasick dictionary objects
 local _ac_dicts = {}
+
+-- module-level cache of hyperscan objects
+local _hyperscan_dicts = {}
 
 -- module-level cache of cidr objects
 local _cidr_cache = {}
@@ -633,6 +638,15 @@ _M.lookup = {
 	VALIDATE_UTF8_ENCODING = function(waf, collection, pattern) return _M.validate_utf8encoding(waf, pattern) end,
 }
 
+local function refind_patterns(waf, collection, patterns)
+	for i, pattern in ipairs(patterns) do
+		local match, v = _M.refind(waf, collection, pattern)
+		if not match then
+			return i
+		end
+	end
+end
+
 ---comment
 ---@param waf WAF
 ---@param collection WAF.Collections
@@ -640,16 +654,45 @@ _M.lookup = {
 ---@param ctx WAF.Ctx
 function _M.hyperscan(waf, collection, rule, ctx)
 	if not rule.__cacheCompiler then
-		rule.__cacheCompiler = {}
-	end
+		md5:reset()
+		for _, v in ipairs(rule.patterns) do
+			md5:update(v, #v)
+		end
+		local hash = md5:final()
+		local hs = _hyperscan_dicts[hash]
+		if not hs then
+			hs = hyperscan.block_new(rule.ids[1])
 
-	local id = rule.ids[rule.__cacheCompiler(rule.patterns)]
+			local ok, err = hs:compile(rule.patterns)
+			if not ok then
+				--_LOG_"failed to compile hyperscan pattern: " .. err
+				hs = {
+					scan = refind_patterns
+				}
+			end
+			_hyperscan_dicts[hash] = hs
+		end
+
+		rule.__cacheCompiler = function(waf, collection, patterns)
+			return hs:scan(collection)
+		end
+	end
+	local id
+	if type(collection) == "table" then
+		for _, v in ipairs(collection) do
+			id = rule.__cacheCompiler(waf, v, rule.patterns)
+		end
+	else
+		id = rule.__cacheCompiler(waf, collection, rule.patterns)
+	end
+	id = rule.ids[id]
 	return id ~= nil, id
 end
 
 _M.parallel_lookup = {
 	REFIND = _M.hyperscan,
-	AC = function(waf, collection, rule, ctx) end,
+	---@param rule WAF.ParallelRuleset.Rule
+	PM = function(waf, collection, rule, ctx) return _M.ac_lookup(collection, rule.patterns, ctx) end,
 }
 
 return _M

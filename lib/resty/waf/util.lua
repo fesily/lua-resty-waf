@@ -3,7 +3,7 @@ local _M = {}
 local base   = require "resty.waf.base"
 local cjson  = require "cjson"
 local logger = require "resty.waf.log"
-
+local lfs = require "lfs"
 local re_find       = require "resty.waf.regex".find
 local string_byte   = string.byte
 local string_char   = string.char
@@ -163,9 +163,35 @@ function _M.parse_ruleset(data)
 	end
 end
 
+function _M.load_lua_rule(name, version)
+	for k in string_gmatch(package.path, "[^;]+") do
+		local path = string_match(k, "(.*/)")
+
+		local full_name = path .. "rules/" .. name .. ".lua"
+
+		local f = io.open(full_name)
+		if f ~= nil then
+			local time, err = lfs.attributes(full_name, 'modification')
+			if err or time == version then
+				return nil
+			end
+			f:close()
+			local fn, err = loadfile(path, "t")
+			if err then
+				--_LOG_"loadfile error: " .. err
+			else
+				setfenv(fn, nil)
+				return fn, time
+			end
+		end
+	end
+
+	return nil
+end
+
 -- find a rule file with a .json suffix, read it, and return a JSON string
 function _M.load_ruleset_file(name)
-	for k, v in string_gmatch(package.path, "[^;]+") do
+	for k in string_gmatch(package.path, "[^;]+") do
 		local path = string_match(k, "(.*/)")
 
 		local full_name = path .. "rules/" .. name .. ".json"
@@ -185,7 +211,7 @@ end
 
 -- encode a given string as hex
 function _M.hex_encode(str)
-	return (str:gsub('.', function (c)
+	return (str:gsub('.', function(c)
 		return string_format('%02x', string_byte(c))
 	end))
 end
@@ -195,7 +221,7 @@ function _M.hex_decode(str)
 	local value
 
 	if (pcall(function()
-		value = str:gsub('..', function (cc)
+		value = str:gsub('..', function(cc)
 			return string_char(tonumber(cc, 16))
 		end)
 	end)) then

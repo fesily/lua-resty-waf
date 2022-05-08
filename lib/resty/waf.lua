@@ -46,51 +46,31 @@ local _global_rulesets = {
 	"90000_custom",
 	"99000_scoring"
 ]]
-	"attack-lfi",
-	"attack-rfi",
-	"attack-rce",
-	"attack-php",
-	"attack-generic",
-	"attack-xss",
-	"attack-sqli",
-	"attack-session-fixation",
-	"attack-java",
 }
 _M.global_rulesets = _global_rulesets
 
 -- ruleset table cache
 ---@type table<string,WAF.PhaseRuleset>
 local _ruleset_defs = {}
----@type table<string,WAF.Rule>
-local _id_rules = {}
+local _ruleset_defs_version = {}
 local _ruleset_def_cnt = 0
 
----@param rule WAF.Rule
-local function get_ruleset(rule)
-	for _, ruleset in pairs(_ruleset_defs) do
-		for _, rules in pairs(ruleset) do
-			local first_id, last_id
+local _parallel_ruleset_defs = {}
+---@type table<string,WAF.Rule>
+local _id_rules = {}
+local _initlize_tx_version, _finalize_exe_version
+local _subchain_rules = {}
 
-			for _, rule in ipairs(rules) do
-				first_id = tonumber(rule.id)
-				if first_id ~= nil then
-					break
-				end
-			end
-			for i = #rules, 0, -1 do
-				last_id = tonumber(rules[i].id)
-				if last_id ~= nil then
-					break
-				end
-			end
-			if rule.id >= first_id and rule.id <= last_id then
-				for i, v in ipairs(rules) do
-					if v.id == rule.id then
-						return rules, i
-					end
-				end
-			end
-		end
+function _M.initlize_tx(ctx)
+end
+
+function _M.finalize_exe()
+end
+
+---@param rule WAF.Rule
+local function rule_to_ruleset(rule)
+	if _subchain_rules then
+		return _subchain_rules[rule.id],0
 	end
 	return nil, 0
 end
@@ -198,6 +178,7 @@ end
 
 -- cleanup
 local function _finalize(self, ctx)
+	self._active_rulesets = nil
 	-- set X-Lua-Resty-WAF-ID headers as appropriate
 	if not ctx.t_header_set then
 		_transaction_id_header(self, ctx)
@@ -440,6 +421,7 @@ local function _set_ruleset(self, k, rs)
 end
 
 -- merge the default and any custom rules
+---@param self WAF
 local function _merge_rulesets(self)
 	local default = _global_rulesets
 	local t = {}
@@ -511,6 +493,22 @@ local function get_rulesets(self, ruleset)
 	return rs
 end
 
+local function get_parallel_ruleset(self, parallel_name, ruleset)
+	ruleset = ruleset .. "_" .. parallel_name
+	local rs = _parallel_ruleset_defs[ruleset]
+
+	if not rs then
+		local err
+		rs, err = util.load_ruleset_file(ruleset)
+		if err then
+			logger.fatal_fail(err)
+		else
+			_parallel_ruleset_defs[ruleset] = rs
+		end
+	end
+	return rs
+end
+
 local _cache_transform = {}
 local _cache_var = {}
 ---@param self WAF
@@ -518,6 +516,7 @@ local _cache_var = {}
 ---@param ctx WAF.Ctx
 ---@param rs WAF.ParallelRuleset
 local function _exe_parallel_ruleset(self, collections, ctx, rs)
+	if not rs then return end
 	for transformString, v in pairs(rs) do
 		local transform = _cache_transform[transformString]
 		if not transform then
@@ -583,14 +582,17 @@ local function _exe_parallel_ruleset(self, collections, ctx, rs)
 
 					if rule.actions.disrupt == 'CHAIN' then
 						-- 直接运行连续的代码段
-						--TODO check初始化rs以及offset
-						local rs, offset = get_ruleset(rule)
-						local returned_offset, match = _process_rule(self, rule, collections, ctx)
-						while match do
-							rule = rs[offset + returned_offset]
-							if rule then
-								returned_offset, match = _process_rule(self, rule, collections, ctx)
-							end
+						local sub_rs, offset = rule_to_ruleset(rule)
+						if sub_rs then
+							local match = false
+							repeat
+								offset = offset + 1
+								rule = sub_rs[offset]
+								if not rule then
+									break
+								end
+								_, match = _process_rule(self, rule, collections, ctx)
+							until not match
 						end
 					end
 					break
@@ -605,6 +607,7 @@ end
 ---@param ctx WAF.Ctx
 ---@param rs WAF.Ruleset
 local function _exe_global_ruleset(self, collections, ctx, rs)
+	if not rs then return end
 	local offset = 1
 	---@type WAF.Rule
 	local rule = rs[offset]
@@ -671,8 +674,8 @@ function _M.exec(self, opts, ngx_ctx)
 	ctx.nameservers   = self._nameservers
 
 	-- pre-initialize the TX collection
+	_M.initlize_tx(ctx)
 	ctx.storage["TX"]    = ctx.storage["TX"] or {}
-	--TODO 加载fix init function
 	ctx.col_lookup["TX"] = "TX"
 	ctx.altered          = false
 	ctx.short_circuit    = false
@@ -712,12 +715,15 @@ function _M.exec(self, opts, ngx_ctx)
 	-- store the collections table in ctx, which will get saved to ngx.ctx
 	ctx.collections = collections
 
-	-- build rulesets
-	if self.need_merge == true then
-		---@type string[]
-		self._active_rulesets = _merge_rulesets(self)
-	else
-		self._active_rulesets = _global_rulesets
+	-- allow outside set active rulesets
+	if not self._active_rulesets then
+		-- build rulesets
+		if self.need_merge == true then
+			---@type string[]
+			self._active_rulesets = _merge_rulesets(self)
+		else
+			self._active_rulesets = _global_rulesets
+		end
 	end
 
 	-- set up tracking tables and flags if we're using redis for persistent storage
@@ -728,16 +734,15 @@ function _M.exec(self, opts, ngx_ctx)
 		self._storage_redis_setkey   = {}
 	end
 
-	_exe_global_ruleset(self, collections, ctx, get_rulesets("initlize")[phase])
+	_exe_global_ruleset(self, collections, ctx, get_rulesets(self, "initlize")[phase])
 	--_LOG_"Beginning run of phase " .. phase
-	_exe_parallel_ruleset(self, collections, ctx, self._parallel_ruleset[phase])
 	for _, ruleset in ipairs(self._active_rulesets) do
 		--_LOG_"Beginning ruleset " .. ruleset
+		_exe_parallel_ruleset(self, collections, ctx, get_parallel_ruleset(self, "PM", ruleset))
+		_exe_parallel_ruleset(self, collections, ctx, get_parallel_ruleset(self, "REFIND", ruleset))
 
-		_exe_global_ruleset(self, collections, ctx, get_rulesets(ruleset))
+		_exe_global_ruleset(self, collections, ctx, get_rulesets(self, ruleset))
 	end
-
-	_exe_global_ruleset(self, collections, ctx, get_rulesets("finalize")[phase])
 
 	_finalize(self, ctx)
 end
@@ -857,6 +862,23 @@ function _M.init()
 			_build_exception_table()
 		end
 	end
+	_M.reload_rulesets()
+end
+
+---reload rulesets when file changed
+function _M.reload_rulesets()
+	--TODO 更新规则集时需要删除ac,hyperscan,var,transforms缓存
+	local fn, time = util.load_lua_rule("initlize", _initlize_tx_version)
+	if fn then
+		_M.initlize_tx = fn
+		_initlize_tx_version = time
+	end
+	fn, time = util.load_lua_rule("finalize", _finalize_exe_version)
+	if fn then
+		_M.finalize_exe = fn
+		_finalize_exe_version = time
+	end
+	_subchain_rules = util.load_ruleset_file("subchain")
 end
 
 -- translate and add a SecRule files to ruleset defs
