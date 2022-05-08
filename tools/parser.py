@@ -38,7 +38,7 @@ def transformPath(path,outPath):
     #subprocess.call(['./tools/modsec2lua-resty-waf.pl',path,'-p',dir,'-P','>',outPath],shell=False)
 
 def transform(paths,name):
-    name = f'./rules/{name}/'
+    name = f'./transform_coreruleset/{name}/'
     if not os.path.exists(name):
         os.mkdir(name)
     for path in paths:
