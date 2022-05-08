@@ -72,6 +72,9 @@ clean-rocks:
 clean-test:
 	rm -rf t/servroot*
 
+transform_coreruleset:
+	./tools/parser.py
+
 debug-macro:
 	./tools/debug-macro.py
 
