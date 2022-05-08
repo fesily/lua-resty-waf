@@ -3,6 +3,7 @@ import git
 import os
 import subprocess
 import sys
+
 CRS_PATH = "./coreruleset"
 CRS_GIT = "https://github.com/coreruleset/coreruleset.git"
 CRS_RULE_PATH = os.path.join(CRS_PATH,"rules/")
@@ -47,6 +48,8 @@ def transform(paths,name):
 if __name__ == '__main__':
     if not os.path.exists(CRS_PATH):
         clone_project()
+    else: 
+        subprocess.call("cd ./coreruleset/ && git pull",shell=True)
     paths = get_rules_paths(CRS_RULE_PATH)
     attackPaths,paths = group(lambda x: path_id(x) >= 910 and path_id(x) != 949, paths)
     attackMaxID = path_id(attackPaths[-1])

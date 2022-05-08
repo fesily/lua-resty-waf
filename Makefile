@@ -29,7 +29,7 @@ LOCAL_LIB_DIR = lib/resty
 
 .PHONY: all test install clean test-unit test-acceptance test-regression \
 test-translate lua-aho-corasick lua-resty-htmlentities libinjection \
-clean-libinjection clean-lua-aho-corasick install-opm-libs clean-opm-libs
+clean-libinjection clean-lua-aho-corasick install-opm-libs clean-opm-libs transform_coreruleset
 
 all: $(MAKE_LIBS) debug-macro
 
