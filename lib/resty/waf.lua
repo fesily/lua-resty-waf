@@ -62,7 +62,7 @@ local _subchain_rules = { __version = 0 }
 local function emtpy()
 end
 
-_M.initlize_tx = setmetatable({ __version = 0 }, { __call = emtpy })
+_M.initialize_tx = setmetatable({ __version = 0 }, { __call = emtpy })
 _M.finalize_exe = setmetatable({ __version = 0 }, { __call = emtpy })
 
 ---@param rule WAF.Rule
@@ -685,8 +685,8 @@ function _M.exec(self, opts, ngx_ctx)
     ctx.nameservers = self._nameservers
 
     -- pre-initialize the TX collection
-    if _M.initlize_tx then
-        _M.initlize_tx(ctx, tab_new)
+    if _M.initialize_tx then
+        _M.initialize_tx(ctx, tab_new)
     end
     ctx.storage["TX"] = ctx.storage["TX"] or {}
     ctx.col_lookup["TX"] = "TX"
@@ -908,7 +908,7 @@ end
 ---reload rulesets when file changed
 function _M.reload_rulesets()
     --TODO 更新规则集时需要删除ac,hyperscan,var,transforms缓存
-    _M.initlize_tx = util.load_lua_rule("initlize", _M.initlize_tx.__version, _M.home)
+    _M.initialize_tx = util.load_lua_rule("initialize", _M.initialize_tx.__version, _M.home)
     _M.finalize_exe = util.load_lua_rule("finalize", _M.finalize_exe.__version, _M.home)
     _subchain_rules = util.load_ruleset_file("subchain", _subchain_rules.__version)
 end
