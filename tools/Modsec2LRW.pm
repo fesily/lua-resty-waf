@@ -190,7 +190,7 @@ sub meta_exception {
 }
 
 my $ctl_lookup = {
-	ruleRemoveById => sub {
+	ruleRemoveById           => sub {
 		my ($value, $translation) = @_;
 
 		push @{$translation->{actions}->{nondisrupt}}, {
@@ -198,27 +198,36 @@ my $ctl_lookup = {
 			data   => $value,
 		};
 	},
-	ruleRemoveByMsg => sub {
+	ruleRemoveByMsg          => sub {
 		my ($value, $translation) = @_;
 
 		push @{$translation->{exceptions}}, $value;
 
 		meta_exception($translation);
 	},
-	ruleRemoveByTag => sub {
+	ruleRemoveByTag          => sub {
 		my ($value, $translation) = @_;
 
 		push @{$translation->{exceptions}}, $value;
 
 		meta_exception($translation);
 	},
-	requestBodyProcessor => sub {
+	requestBodyProcessor     => sub {
 		my ($value, $translation) = @_;
 
 		push @{$translation->{actions}->{nondisrupt}}, {
 			action => 'request_body_processor',
 			data   => $value,
 		};
+	},
+	auditLogParts            => sub {
+		#TODO not support now,ignore this ctl
+	},
+	auditEngine              => sub {
+		#TODO ignore this ctl
+	},
+	forceRequestBodyVariable => sub {
+		#TODO ignore this ctl
 	},
 };
 
@@ -775,7 +784,9 @@ sub translate_operator {
 	$translation->{op_negated} = 1 if $rule->{operator}->{negated};
 
 	# force int
-	$translation->{pattern} = 0 if $translation->{pattern} =~  m/^\d*(?:\.\d+)?$/;
+	if ( $translation->{pattern} and $translation->{pattern} =~  m/^\d*(?:\.\d+)?$/) {
+		$translation->{pattern} = $translation->{pattern} + 0;
+	}
 
 	# this operator reads from a file.
 	# read the file and build the pattern table
@@ -868,7 +879,8 @@ sub translate_actions {
 			if ($translation->{operator} eq 'REFIND'){
 				$translation->{operator} = 'REGEX';
 			}elsif ($translation->{operator} ne 'PM'){
-				warn "capture set when translated operator was not REFIND:$translation->{operator},id:$translation->{id}" ;
+				#warn "capture set when translated operator was not REFIND or PM :$translation->{operator},id:$translation->{id}" ;
+				warn "capture set when translated operator was not REFIND or PM" ;
 			}
 		} elsif ($key eq 'ctl') {
 			my ($opt, $data) = split /=/, $value;
@@ -1011,7 +1023,7 @@ sub translate_macro {
 	my ($string) = @_;
 
 	# grab each macro and replace it with its lookup equivalent
-	for my $macro ($string =~ m/%{([^}]+)}/g) {
+	for my $macro ($string =~ m/\%\{([^}]+)\}/g) {
 		my ($key, $specific) = split /\./, $macro;
 		my $replacement;
 

@@ -79,7 +79,7 @@ export namespace WAF {
             col: string;
             key: string;
             inc?: string;
-            value: string;
+            value: string | number;
         }
 
         export interface Opts {
