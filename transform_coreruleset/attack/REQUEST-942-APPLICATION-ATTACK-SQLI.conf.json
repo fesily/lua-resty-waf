@@ -10,7 +10,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "1",
          "skip_after" : "END-REQUEST-942-APPLICATION-ATTACK-SQLI",
          "vars" : [
             {
@@ -33,7 +33,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "1",
          "skip_after" : "END-REQUEST-942-APPLICATION-ATTACK-SQLI",
          "vars" : [
             {
@@ -80,7 +80,7 @@
                "remove_nulls"
             ]
          },
-         "pattern" : 0,
+         "pattern" : "",
          "severity" : "CRITICAL",
          "tag" : [
             "application-multi",
@@ -1486,7 +1486,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "2",
          "skip_after" : "END-REQUEST-942-APPLICATION-ATTACK-SQLI",
          "vars" : [
             {
@@ -1509,7 +1509,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "2",
          "skip_after" : "END-REQUEST-942-APPLICATION-ATTACK-SQLI",
          "vars" : [
             {
@@ -3718,7 +3718,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "3",
          "skip_after" : "END-REQUEST-942-APPLICATION-ATTACK-SQLI",
          "vars" : [
             {
@@ -3741,7 +3741,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "3",
          "skip_after" : "END-REQUEST-942-APPLICATION-ATTACK-SQLI",
          "vars" : [
             {
@@ -4146,7 +4146,7 @@
                "remove_nulls"
             ]
          },
-         "pattern" : 0,
+         "pattern" : "",
          "severity" : "CRITICAL",
          "tag" : [
             "application-multi",
@@ -4258,7 +4258,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "4",
          "skip_after" : "END-REQUEST-942-APPLICATION-ATTACK-SQLI",
          "vars" : [
             {
@@ -4281,7 +4281,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "4",
          "skip_after" : "END-REQUEST-942-APPLICATION-ATTACK-SQLI",
          "vars" : [
             {

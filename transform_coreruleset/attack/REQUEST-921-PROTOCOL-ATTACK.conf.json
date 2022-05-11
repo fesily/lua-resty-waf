@@ -10,7 +10,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "1",
          "skip_after" : "END-REQUEST-921-PROTOCOL-ATTACK",
          "vars" : [
             {
@@ -33,7 +33,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "1",
          "skip_after" : "END-REQUEST-921-PROTOCOL-ATTACK",
          "vars" : [
             {
@@ -590,7 +590,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "2",
          "skip_after" : "END-REQUEST-921-PROTOCOL-ATTACK",
          "vars" : [
             {
@@ -613,7 +613,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "2",
          "skip_after" : "END-REQUEST-921-PROTOCOL-ATTACK",
          "vars" : [
             {
@@ -692,7 +692,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "3",
          "skip_after" : "END-REQUEST-921-PROTOCOL-ATTACK",
          "vars" : [
             {
@@ -715,7 +715,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "3",
          "skip_after" : "END-REQUEST-921-PROTOCOL-ATTACK",
          "vars" : [
             {
@@ -778,7 +778,7 @@
          "opts" : {
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "1",
          "severity" : "CRITICAL",
          "tag" : [
             "application-multi",
@@ -850,7 +850,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "4",
          "skip_after" : "END-REQUEST-921-PROTOCOL-ATTACK",
          "vars" : [
             {
@@ -873,7 +873,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "4",
          "skip_after" : "END-REQUEST-921-PROTOCOL-ATTACK",
          "vars" : [
             {

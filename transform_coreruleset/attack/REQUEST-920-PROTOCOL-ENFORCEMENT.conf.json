@@ -10,7 +10,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "1",
          "skip_after" : "END-REQUEST-920-PROTOCOL-ENFORCEMENT",
          "vars" : [
             {
@@ -33,7 +33,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "1",
          "skip_after" : "END-REQUEST-920-PROTOCOL-ENFORCEMENT",
          "vars" : [
             {
@@ -605,7 +605,7 @@
          "logdata" : "%{MATCHED_VAR}",
          "msg" : "URL Encoding Abuse Attack Attempt",
          "operator" : "VALIDATE_URL_ENCODING",
-         "pattern" : 0,
+         "pattern" : "",
          "vars" : [
             {
                "type" : "REQUEST_URI"
@@ -672,7 +672,7 @@
          "logdata" : "%{MATCHED_VAR}",
          "msg" : "URL Encoding Abuse Attack Attempt",
          "operator" : "VALIDATE_URL_ENCODING",
-         "pattern" : 0,
+         "pattern" : "",
          "vars" : [
             {
                "type" : "REQUEST_BODY"
@@ -688,7 +688,7 @@
          "opts" : {
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "1",
          "severity" : "WARNING",
          "tag" : [
             "application-multi",
@@ -730,7 +730,7 @@
          "logdata" : "%{MATCHED_VAR}",
          "msg" : "UTF8 Encoding Abuse Attack Attempt",
          "operator" : "VALIDATE_UTF8_ENCODING",
-         "pattern" : 0,
+         "pattern" : "",
          "vars" : [
             {
                "type" : "URI"
@@ -1259,7 +1259,7 @@
          "opts" : {
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "1",
          "severity" : "CRITICAL",
          "tag" : [
             "application-multi",
@@ -1326,7 +1326,7 @@
          "opts" : {
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "1",
          "severity" : "CRITICAL",
          "tag" : [
             "application-multi",
@@ -1395,7 +1395,7 @@
          "opts" : {
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "1",
          "severity" : "CRITICAL",
          "tag" : [
             "application-multi",
@@ -1464,7 +1464,7 @@
          "opts" : {
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "1",
          "severity" : "CRITICAL",
          "tag" : [
             "application-multi",
@@ -1526,7 +1526,7 @@
          "opts" : {
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "1",
          "severity" : "CRITICAL",
          "tag" : [
             "application-multi",
@@ -1608,7 +1608,7 @@
          "opts" : {
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "1",
          "severity" : "CRITICAL",
          "tag" : [
             "application-multi",
@@ -2125,7 +2125,7 @@
                "length"
             ]
          },
-         "pattern" : "0",
+         "pattern" : "50",
          "severity" : "CRITICAL",
          "tag" : [
             "application-multi",
@@ -2158,7 +2158,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "2",
          "skip_after" : "END-REQUEST-920-PROTOCOL-ENFORCEMENT",
          "vars" : [
             {
@@ -2181,7 +2181,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "2",
          "skip_after" : "END-REQUEST-920-PROTOCOL-ENFORCEMENT",
          "vars" : [
             {
@@ -2589,7 +2589,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "3",
          "skip_after" : "END-REQUEST-920-PROTOCOL-ENFORCEMENT",
          "vars" : [
             {
@@ -2612,7 +2612,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "3",
          "skip_after" : "END-REQUEST-920-PROTOCOL-ENFORCEMENT",
          "vars" : [
             {
@@ -2780,7 +2780,7 @@
          "opts" : {
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "1",
          "severity" : "CRITICAL",
          "tag" : [
             "language-aspnet",
@@ -2954,7 +2954,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "4",
          "skip_after" : "END-REQUEST-920-PROTOCOL-ENFORCEMENT",
          "vars" : [
             {
@@ -2977,7 +2977,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "4",
          "skip_after" : "END-REQUEST-920-PROTOCOL-ENFORCEMENT",
          "vars" : [
             {

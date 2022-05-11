@@ -1005,7 +1005,7 @@
                "uri_decode"
             ]
          },
-         "pattern" : "0",
+         "pattern" : "1",
          "vars" : [
             {
                "parse" : [
@@ -1049,7 +1049,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "100",
          "skip_after" : "END-SAMPLING",
          "vars" : [
             {

@@ -10,7 +10,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "1",
          "skip_after" : "END-REQUEST-944-APPLICATION-ATTACK-JAVA",
          "vars" : [
             {
@@ -33,7 +33,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "1",
          "skip_after" : "END-REQUEST-944-APPLICATION-ATTACK-JAVA",
          "vars" : [
             {
@@ -704,7 +704,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "2",
          "skip_after" : "END-REQUEST-944-APPLICATION-ATTACK-JAVA",
          "vars" : [
             {
@@ -727,7 +727,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "2",
          "skip_after" : "END-REQUEST-944-APPLICATION-ATTACK-JAVA",
          "vars" : [
             {
@@ -1293,7 +1293,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "3",
          "skip_after" : "END-REQUEST-944-APPLICATION-ATTACK-JAVA",
          "vars" : [
             {
@@ -1316,7 +1316,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "3",
          "skip_after" : "END-REQUEST-944-APPLICATION-ATTACK-JAVA",
          "vars" : [
             {
@@ -1427,7 +1427,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "4",
          "skip_after" : "END-REQUEST-944-APPLICATION-ATTACK-JAVA",
          "vars" : [
             {
@@ -1450,7 +1450,7 @@
             "nolog" : 1,
             "parsepattern" : 1
          },
-         "pattern" : "0",
+         "pattern" : "4",
          "skip_after" : "END-REQUEST-944-APPLICATION-ATTACK-JAVA",
          "vars" : [
             {
