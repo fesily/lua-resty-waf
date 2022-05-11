@@ -47,7 +47,7 @@ function mergeByVars(
         let mergedVarsRules = new Map<string, WAF.Rule[]>()
         for (const rule of sameTransformRules) {
             for (const _var of rule.vars) {
-                let t = JSON.stringify(_var)
+                const t = JSON.stringify(_var)
                 if (varsInfo.has(t)) {
                     console.assert(JSON.stringify(_var) === JSON.stringify(varsInfo.get(t)))
                 }
@@ -83,7 +83,7 @@ function mergeByVars(
     }
 
     return new Map([...result.entries()].map(x => {
-        let r1 = new Map([...x[1].entries()].map(y => {
+        const r1 = new Map([...x[1].entries()].map(y => {
             return [y[0], y[1].reduce((obj, rule) => {
                 if (rule.pattern instanceof Array) {
                     rule.pattern.forEach(x => {
@@ -104,7 +104,7 @@ function mergeByVars(
 function mergeByTransform(rules: Array<WAF.Rule>): Map<string, WAF.Rule[]> {
     const result = new Map<string, WAF.Rule[]>()
     for (const rule of rules) {
-        let h = JSON.stringify(rule.opts?.transform || [])
+        const h = JSON.stringify(rule.opts?.transform || [])
         if (!result.has(h)) {
             result.set(h, [rule])
         } else result.get(h)?.push(rule)
@@ -116,14 +116,14 @@ function transformLabel(rule: WAF.Rule) {
     return rule.id
 }
 
-let nondisrupt_re = new RegExp('%\{([\._\dA-Za-z]+\)}')
+const nondisrupt_re = new RegExp('%{([._\\dA-Za-z]+)}')
 
 function transformSetVar(v: WAF.Rule.Nondisrupt) {
-    assert(v.data.col.match("[_\dA-Za-z]+"))
-    assert(v.data.key.match("[_\dA-Za-z]+"))
+    assert(v.data.col.match('[_\\dA-Za-z]+'))
+    assert(v.data.key.match('[_\\dA-Za-z]+'))
     let value = v.data.value
-    if (typeof(value) == "string" && !isNumberString(value)) {
-        let all_name: string[] = []
+    if (typeof(value) == 'string' && !isNumberString(value)) {
+        const all_name: string[] = []
         value = value.replace(nondisrupt_re, x => {
             all_name.push(`collections.${x}`);
             return '%s'
@@ -131,7 +131,7 @@ function transformSetVar(v: WAF.Rule.Nondisrupt) {
         if (value !== v.data.value)
             value = `string.format(${value},${all_name.join(',')})`
     }
-    let operator = v.data.inc ? '+=' : '='
+    const operator = v.data.inc ? '+=' : '='
     return `ctx.storage.${v.data.col}.${v.data.key}${operator}${value}`
 }
 
@@ -154,11 +154,11 @@ function transformInit(rules: WAF.Rule[]): [string, WAF.Rule[]] {
     //读取所有初始化的规则SetRule
     let luaBlocks = linq.from(rules).where(x => x.actions.disrupt === 'IGNORE' && !!x.opts?.nolog && !!x.opts?.parsepattern && x.pattern === '0' && x.operator === 'EQUALS').where(x => {
         if (x.actions.nondisrupt?.length === 1 && x.vars.length === 1) {
-            let nondisrupt = x.actions.nondisrupt[0]
-            let vars = x.vars[0]
+            const nondisrupt = x.actions.nondisrupt[0]
+            const vars = x.vars[0]
             if (nondisrupt.action === 'setvar' && vars.length === 1 && vars.storage === 1 && vars.parse?.length === 2) {
             }
-            let parse = vars.parse
+            const parse = vars.parse
             if (parse[0] === 'specific' && nondisrupt.data.key === parse[1] && vars.type === nondisrupt.data.col) {
                 return true
             }
@@ -179,7 +179,7 @@ function transformInit(rules: WAF.Rule[]): [string, WAF.Rule[]] {
                 defaultValue = `[[${defaultValue}]]`
         }
         console.assert(data.col === 'TX')
-        let value = `${data.col}.${data.key}`
+        const value = `${data.col}.${data.key}`
         return `${value}= ${value} or ${defaultValue}\n`
     }).aggregate('ctx.storage.TX = ctx.storage.TX or tab_new(0,48)\n local TX = ctx.storage.TX\n TX.CRS_SETUP_VERSION=TX.CRS_SETUP_VERSION or 340\n', (l, r) => l + r)
     //读取SetAction初始化
@@ -212,38 +212,38 @@ function transformRule(rule: WAF.Rule) {
 }
 
 const transformRuleSet = {
-    "REQUEST-911-METHOD-ENFORCEMENT": "attack-generic",
-    "REQUEST-913-SCANNER-DETECTION": "attack-generic",
-    "REQUEST-920-PROTOCOL-ENFORCEMENT": "attack-protocol",
-    "REQUEST-921-PROTOCOL-ATTACK": "attack-protocol",
-    "REQUEST-930-APPLICATION-ATTACK-LFI": "attack-webshell",
-    "REQUEST-931-APPLICATION-ATTACK-RFI": "attack-webshell",
-    "REQUEST-932-APPLICATION-ATTACK-RCE": "attack-webshell",
-    "REQUEST-933-APPLICATION-ATTACK-PHP": "attack-virtualpatch",
-    "REQUEST-934-APPLICATION-ATTACK-GENERIC": "attack-generic",
-    "REQUEST-941-APPLICATION-ATTACK-XSS": "attack-xss",
-    "REQUEST-942-APPLICATION-ATTACK-SQLI": "attack-sqli",
-    "REQUEST-943-APPLICATION-ATTACK-SESSION-FIXATION": "attack-generic",
-    "REQUEST-944-APPLICATION-ATTACK-JAVA": "attack-virtualpatch",
+    'REQUEST-911-METHOD-ENFORCEMENT': 'attack-generic',
+    'REQUEST-913-SCANNER-DETECTION': 'attack-generic',
+    'REQUEST-920-PROTOCOL-ENFORCEMENT': 'attack-protocol',
+    'REQUEST-921-PROTOCOL-ATTACK': 'attack-protocol',
+    'REQUEST-930-APPLICATION-ATTACK-LFI': 'attack-webshell',
+    'REQUEST-931-APPLICATION-ATTACK-RFI': 'attack-webshell',
+    'REQUEST-932-APPLICATION-ATTACK-RCE': 'attack-webshell',
+    'REQUEST-933-APPLICATION-ATTACK-PHP': 'attack-virtualpatch',
+    'REQUEST-934-APPLICATION-ATTACK-GENERIC': 'attack-generic',
+    'REQUEST-941-APPLICATION-ATTACK-XSS': 'attack-xss',
+    'REQUEST-942-APPLICATION-ATTACK-SQLI': 'attack-sqli',
+    'REQUEST-943-APPLICATION-ATTACK-SESSION-FIXATION': 'attack-generic',
+    'REQUEST-944-APPLICATION-ATTACK-JAVA': 'attack-virtualpatch',
 } as { [key: string]: string }
 
 async function readAllRules(dirPath: string, phase: string) {
-    let files = await fs.readdir(dirPath)
-    let rules = []
+    const files = await fs.readdir(dirPath)
+    const rules = []
     for (const file of files) {
-        let ruleset = JSON.parse(await fs.readFile(path.join(dirPath, file), 'utf8'))[phase] as WAF.Rule[]
-        let rulesetName = path.basename(file, "json").split(".")[0]
-        let attack_tag = transformRuleSet[rulesetName]
+        const ruleset = JSON.parse(await fs.readFile(path.join(dirPath, file), 'utf8'))[phase] as WAF.Rule[]
+        const rulesetName = path.basename(file, 'json').split('.')[0]
+        const attack_tag = transformRuleSet[rulesetName]
         if (attack_tag) {
             for (const rule of ruleset) {
                 rule.attack_tag = attack_tag
             }
         }
         for (const rule of ruleset) {
-            rule.paranoia_level = Number(rule.tag?.find(x => x.startsWith("paranoia-level/"))?.split("/")[1])
+            rule.paranoia_level = Number(rule.tag?.find(x => x.startsWith('paranoia-level/'))?.split('/')[1])
             rule.paranoia_level = isNaN(rule.paranoia_level) ? undefined : rule.paranoia_level
-            rule.tag = rule.tag?.filter(x => !x.startsWith("attack"))
-            rule.tag = rule.tag?.filter(x => !x.startsWith("paranoia-level/"))
+            rule.tag = rule.tag?.filter(x => !x.startsWith('attack'))
+            rule.tag = rule.tag?.filter(x => !x.startsWith('paranoia-level/'))
         }
         rules.push(ruleset)
     }
@@ -251,7 +251,7 @@ async function readAllRules(dirPath: string, phase: string) {
 }
 
 function isDETECTION_PARANOIA_LEVEL_Label(rule: WAF.Rule): boolean {
-    if (rule.actions.disrupt === WAF.Rule.DisruptAction.IGNORE && !!rule.skip_after && rule.vars.length === 1 && rule.vars[0].type === "TX" && rule.vars[0].parse[1] === "DETECTION_PARANOIA_LEVEL") {
+    if (rule.actions.disrupt === WAF.Rule.DisruptAction.IGNORE && !!rule.skip_after && rule.vars.length === 1 && rule.vars[0].type === 'TX' && rule.vars[0].parse[1] === 'DETECTION_PARANOIA_LEVEL') {
         isDETECTION_PARANOIA_LEVEL_Label.skip_afters.push(rule.skip_after)
         return true
     }
@@ -272,8 +272,8 @@ function jsonstringifyMap(_: any, value: any) {
 
 async function transform(dir: string, k: number, allRules: WAF.Rule[], phase: string) {
     console.log(`rules len:${allRules.length},hit:${benchmark.calcHitCount(allRules)}`)
-    let pmRules: Array<WAF.Rule> = []
-    let refindRules: Array<WAF.Rule> = []
+    const pmRules: Array<WAF.Rule> = []
+    const refindRules: Array<WAF.Rule> = []
 
     allRules.forEach((rule) => {
         if (rule.operator === 'PM') {
@@ -302,7 +302,7 @@ async function transform(dir: string, k: number, allRules: WAF.Rule[], phase: st
         .toArray()
     //对更新优化过的规则集
     for (const rule of refindRules.filter(x => x.vars.length > 0).concat(pmRules.filter(x => x.vars.length > 0))) {
-        let updateRule = linq.from(allRules).single(x => x.id === rule.id)
+        const updateRule = linq.from(allRules).single(x => x.id === rule.id)
         updateRule.vars = rule.vars
     }
 
@@ -316,7 +316,7 @@ async function transform(dir: string, k: number, allRules: WAF.Rule[], phase: st
 
 function Powerset<T>(input: T[]) {
     return input.reduce(function (powerset, item, index) {
-        let next = [item]
+        const next = [item]
         return powerset.reduce(function (powerset, item) {
             powerset.push(item.concat(next))
             return powerset
@@ -325,15 +325,15 @@ function Powerset<T>(input: T[]) {
 }
 
 async function main(phase: string) {
-    let allRules = await readAllRules("./transform_coreruleset/attack", phase)
+    let allRules = await readAllRules('./transform_coreruleset/attack', phase)
     {
-        let initRules = await readAllRules("./transform_coreruleset/start", phase)
-        let [s, rules] = transformInit(initRules);
-        await fs.writeFile('./rules/initlize.json', JSON.stringify({[phase]: rules}))
-        await fs.writeFile('./rules/initlize.lua', s)
+        const initRules = await readAllRules('./transform_coreruleset/start', phase)
+        const [s, rules] = transformInit(initRules);
+        await fs.writeFile('./rules/initialize.json', JSON.stringify({[phase]: rules}))
+        await fs.writeFile('./rules/initialize.lua', s)
     }
     {
-        //忽略finallize翻译
+        //忽略finalize翻译
 
     }
 
@@ -348,23 +348,23 @@ async function main(phase: string) {
 
     let arr = linq.from(allRules).groupBy(x => x.attack_tag ?? '').select(x => x.key()).toArray()
     //暂时不用协议攻击
-    arr = arr.filter(x => !x.includes("protocol"))
-    arr = arr.filter(x => !x.includes("generic"))
+    arr = arr.filter(x => !x.includes('protocol'))
+    arr = arr.filter(x => !x.includes('generic'))
 
-    let indexss = linq.from(Powerset(linq.range(0, arr.length).toArray())).skip(1).toArray();
+    const indexss = linq.from(Powerset(linq.range(0, arr.length).toArray())).skip(1).toArray();
 
     for (const indexs of indexss) {
         //先根据规则集来划分
-        let select_tags = linq.from(indexs).select(i => arr[i]).toArray();
-        select_tags.push("attack_generic")
-        let select_rules = allRules.filter(x => select_tags.includes(x.attack_tag ?? ''))
-        let mask = linq.from(indexs).aggregate(0, (l, c) => l | 1 << c)
-        let dir = `./rules/${mask}`;
+        const select_tags = linq.from(indexs).select(i => arr[i]).toArray();
+        select_tags.push('attack_generic')
+        const select_rules = allRules.filter(x => select_tags.includes(x.attack_tag ?? ''))
+        const mask = linq.from(indexs).aggregate(0, (l, c) => l | 1 << c)
+        const dir = `./rules/${mask}`;
         await fs.mkdir(dir, {recursive: true})
         //根据检测等级来划分规则
-        let paranoiaRules = linq.from(select_rules).groupBy(x => x.paranoia_level ?? -1).toDictionary(x => x.key(), x => x.toArray());
+        const paranoiaRules = linq.from(select_rules).groupBy(x => x.paranoia_level ?? -1).toDictionary(x => x.key(), x => x.toArray());
 
-        let levelRules = linq.range(1, 4).select((i): [number, WAF.Rule[]] =>
+        const levelRules = linq.range(1, 4).select((i): [number, WAF.Rule[]] =>
             [
                 i,
                 linq.range(1, i).select(j => paranoiaRules.get(j)).selectMany(x => x).toArray()
@@ -375,7 +375,7 @@ async function main(phase: string) {
             rules = await transform(dir, k, deep_clone(rules), phase)
             //重新合并chain规则
             for (const {key, value} of subChain.toEnumerable()) {
-                let index = rules.findIndex(x => x.id === key)
+                const index = rules.findIndex(x => x.id === key)
                 if (index !== -1) {
                     rules = linq.from(rules).insert(index, value).toArray()
                 }
@@ -383,7 +383,7 @@ async function main(phase: string) {
             await fs.writeFile(`${dir}/${k}.json`, JSON.stringify({[phase]: rules}))
         }
     }
-    await fs.writeFile(`./rules/subchain.json`, JSON.stringify(subChain.toEnumerable().toObject(x => x.key, x => x.value)))
+    await fs.writeFile('./rules/subchain.json', JSON.stringify(subChain.toEnumerable().toObject(x => x.key, x => x.value)))
 }
 
 promisify(main)('access')

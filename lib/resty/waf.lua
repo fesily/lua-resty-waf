@@ -429,7 +429,7 @@ end
 -- merge the default and any custom rules
 ---@param self WAF
 local function _merge_rulesets(self)
-    local default = _global_rulesets
+    local default = self._global_rulesets
     local t = {}
 
     for k, v in ipairs(default) do
@@ -730,15 +730,14 @@ function _M.exec(self, opts, ngx_ctx)
     -- store the collections table in ctx, which will get saved to ngx.ctx
     ctx.collections = collections
 
-    -- allow outside set active rulesets
-    if not self._active_rulesets then
-        -- build rulesets
-        if self.need_merge == true then
-            ---@type string[]
-            self._active_rulesets = _merge_rulesets(self)
-        else
-            self._active_rulesets = _global_rulesets
-        end
+    self._global_rulesets = self._global_rulesets or _global_rulesets
+
+    -- build rulesets
+    if self.need_merge == true then
+        ---@type string[]
+        self._active_rulesets = _merge_rulesets(self)
+    else
+        self._active_rulesets = self._global_rulesets
     end
 
     -- set up tracking tables and flags if we're using redis for persistent storage
@@ -749,9 +748,11 @@ function _M.exec(self, opts, ngx_ctx)
         self._storage_redis_setkey = {}
     end
 
-    local rs = get_ruleset(self, "initlize")[phase]
-    if rs then
-        --_exe_global_ruleset(self, collections, ctx, rs)
+    if opts.run_initialize then
+        local rs = get_ruleset(self, "initialize")[phase]
+        if rs then
+            _exe_global_ruleset(self, collections, ctx, rs)
+        end
     end
     if self._debug == true then ngx.log(self._debug_log_level, '[', self.transaction_id, '] ', "Beginning run of phase " .. phase) end
     for _, ruleset in ipairs(self._active_rulesets) do
