@@ -20,6 +20,10 @@ function _M.warn(waf, ...)
 	ngx.log(ngx.WARN, '[', waf.transaction_id, '] ', ...)
 end
 
+function _M.WARN(...)
+	ngx.log(ngx.WARN, ...)
+end
+
 -- deprecation logger
 function _M.deprecate(waf, msg, ver)
 	_M.warn(waf, 'DEPRECATED: ' .. msg)
