@@ -133,7 +133,7 @@ test-fast: all
 		-j16 -r ./t/regression
 	TEST_NGINX_RANDOMIZE=1 PATH=$(OPENRESTY_PREFIX)/nginx/sbin:$$PATH prove \
 		-j4 -r ./t/acceptance
-	rebusted -k -o=TAP ./t/translation/*
+	tools/rebusted -m="./lib/?.lua;./lib/?/?.lua;./lib/?/init.lua" -k -o=TAP ./t/translation/*
 	./tools/lua-releng -L
 
 install-check:
