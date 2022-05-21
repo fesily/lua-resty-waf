@@ -6,7 +6,9 @@ ffi.cdef[[
 int js_decode(unsigned char *input, long int input_len);
 int css_decode(unsigned char *input, long int input_len);
 int validate_url_encoding(const char *input, uint64_t input_length);
-int validate_utf8_encoding(const char* str_c, size_t len);
+int validate_utf8_encoding(const char* str_c, size_t len, char* err_char);
+int normalize_path_inplace(char *input, int input_len,
+                                          int win, int *changed);
 ]]
 
 local loadlib = function()

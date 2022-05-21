@@ -1,4 +1,4 @@
-return function(ctx)
+return function(_,ctx)
     local TX = ctx.TX
     if TX.BLOCKING_PARANOIA_LEVEL >= 1 then
         TX.BLOCKING_INBOUND_ANOMALY_SCORE = TX.BLOCKING_INBOUND_ANOMALY_SCORE + TX.INBOUND_ANOMALY_SCORE_PL1

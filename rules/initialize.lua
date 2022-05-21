@@ -1,4 +1,4 @@
-return function (ctx,tab_new) 
+return function (_,ctx,tab_new) 
  ctx.storage.TX = ctx.storage.TX or tab_new(0,48)
  local TX = ctx.storage.TX
  TX.CRS_SETUP_VERSION=TX.CRS_SETUP_VERSION or 340

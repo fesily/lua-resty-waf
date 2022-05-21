@@ -6,11 +6,11 @@ local ffi    = require "ffi"
 local logger = require "resty.waf.log"
 local util   = require "resty.waf.util"
 local regex = require "resty.waf.regex"
+local libdecode = require "resty.waf.libdecode"
 
 local ffi_cpy    = ffi.copy
 local ffi_new    = ffi.new
 local ffi_str    = ffi.string
-local c_buf_type = ffi.typeof("char[?]")
 
 local string_find   = string.find
 local string_gsub   = string.gsub
@@ -20,6 +20,7 @@ local string_sub    = string.sub
 local re_sub = regex.sub
 local re_match = regex.match
 local re_gsub = regex.gsub
+local get_string_buf = require "resty.core.base".get_string_buf
 
 _M.version = base.version
 
@@ -28,11 +29,12 @@ hdec.new() -- load the module on require
 local decode_lib = require ("resty.waf.libdecode")
 
 local function decode_buf_helper(value, len)
-	local buf = ffi_new(c_buf_type, len)
+	local buf = get_string_buf(len)
 	ffi_cpy(buf, value)
 	return buf
 end
 
+local normalise_path_changed = ffi_new("int[1]")
 _M.lookup = {
 	base64_decode = function(waf, value)
 		if waf._debug == true then ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Decoding from base64: " .. tostring(value)) end
@@ -104,10 +106,10 @@ _M.lookup = {
 		return ngx.md5_bin(value)
 	end,
 	normalise_path = function(waf, value)
-		while (re_match(value, [=[[^/][^/]*/\.\./|/\./|/{2,}]=], waf._pcre_flags)) do
-			value = re_gsub(value, [=[[^/][^/]*/\.\./|/\./|/{2,}]=], '/', waf._pcre_flags)
-		end
-		return value
+		local len = #value
+		local buf = decode_buf_helper(value, len)
+        local i = libdecode.normalize_path_inplace(buf, len , 0, normalise_path_changed)
+		return ffi_str(buf, i)
 	end,
 	normalise_path_win = function(waf, value)
 		value = string_gsub(value, [[\]], [[/]])
@@ -120,7 +122,17 @@ _M.lookup = {
 		return re_gsub(value, [=[\/\*|\*\/|--|#]=], '', waf._pcre_flags)
 	end,
 	remove_nulls = function(waf, value)
-		return re_gsub(value, [[\0]], '', waf._pcre_flags)
+		local len = #value
+		local buf = decode_buf_helper(value, len * 2)
+		local buf1 = buf + len
+		local index = 0
+		for i = 0, len - 1 do
+			if buf[i] ~= 0 then
+				buf1[index] = buf[i]
+				index = index + 1
+			end
+		end
+		return ffi_str(buf1, index)
 	end,
 	remove_whitespace = function(waf, value)
 		return re_gsub(value, [=[\s+]=], '', waf._pcre_flags)
@@ -129,7 +141,14 @@ _M.lookup = {
 		return re_gsub(value, [=[\/\*(\*(?!\/)|[^\*])*\*\/]=], ' ', waf._pcre_flags)
 	end,
 	replace_nulls = function(waf, value)
-		return re_gsub(value, [[\0]], ' ', waf._pcre_flags)
+		local len = #value
+		local buf = decode_buf_helper(value, len)
+		for i = 0, len - 1 do
+			if buf[i] == 0 then
+				buf[i] = 32
+			end
+		end
+		return ffi_str(buf, len)
 	end,
 	sha1 = function(waf, value)
 		return ngx.sha1_bin(value)

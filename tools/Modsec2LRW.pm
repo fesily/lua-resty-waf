@@ -232,8 +232,9 @@ my $ctl_lookup = {
 };
 
 my $op_sep_lookup = {
-	PM         => '\s+',
-	CIDR_MATCH => ',',
+	PM                  => '\s+',
+	CIDR_MATCH          => ',',
+	VALIDATE_BYTE_RANGE => ',',
 };
 
 my $defaults = {

@@ -155,6 +155,7 @@ local valid_transforms = {
 	urldecode          = 'uri_decode',
 	urldecodeuni       = 'uri_decode',
 };
+_M.valid_transforms = valid_transforms
 
 local action_lookup = {
 	allow = 'ACCEPT',

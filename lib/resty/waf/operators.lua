@@ -1,22 +1,31 @@
 local _M = {}
 
-local ac        = require "resty.waf.load_ac"
-local base      = require "resty.waf.base"
-local bit       = require "bit"
-local dns       = require "resty.dns.resolver"
-local iputils   = require "resty.iputils"
+local ac = require "resty.waf.load_ac"
+local base = require "resty.waf.base"
+local bit = require "bit"
+local dns = require "resty.dns.resolver"
+local iputils = require "resty.iputils"
 local libinject = require "resty.libinjection"
-local logger    = require "resty.waf.log"
-local util      = require "resty.waf.util"
-local regex     = require "resty.waf.regex"
+local logger = require "resty.waf.log"
+local util = require "resty.waf.util"
+local regex = require "resty.waf.regex"
 local libdecode = require "resty.waf.libdecode"
-local _,hyperscan = pcall(function() require "resty.hyperscan" end)
+local _, hyperscan = pcall(require, "resty.hyperscan")
+local table_new = require "table.new"
+local ffi = require "ffi"
+local ffi_new = ffi.new
+local ffi_string = ffi.string
+
+ffi.cdef([[
+int	 atoi(const char *);
+]])
+local atoi = ffi.C.atoi
 
 local string_find = string.find
 local string_gsub = string.gsub
-local string_sub  = string.sub
-local re_find     = regex.find
-local re_match    = regex.match
+local string_sub = string.sub
+local re_find = regex.find
+local re_match = regex.match
 
 local band, bor, bxor = bit.band, bit.bor, bit.bxor
 
@@ -29,117 +38,119 @@ local _hyperscan_dicts = {}
 -- module-level cache of cidr objects
 local _cidr_cache = {}
 
+-- module-level cache of validate_byterange
+local _byterange_cache = {}
+
 _M.version = base.version
 
 function _M.equals(a, b)
-    local equals, value
+    local equals
 
     if type(a) == "table" then
         for _, v in ipairs(a) do
-            equals, value = _M.equals(v, b)
+            equals = _M.equals(v, b)
             if equals then
                 break
             end
         end
     else
         equals = a == b
-
-        if equals then
-            value = a
-        end
     end
 
-    return equals, value
+    return equals, nil
 end
 
-
 function _M.greater(a, b)
-    local greater, value
+    local greater
 
     if type(a) == "table" then
         for _, v in ipairs(a) do
-            greater, value = _M.greater(v, b)
+            greater = _M.greater(v, b)
             if greater then
                 break
             end
         end
     else
+        if type(a) == "string" then
+            a = atoi(a)
+        end
+        if type(b) == "string" then
+            b = atoi(b)
+        end
         greater = a > b
 
-        if greater then
-            value = a
-        end
     end
-
-    return greater, value
+    return greater
 end
 
-
 function _M.less(a, b)
-    local less, value
+    local less
 
     if type(a) == "table" then
         for _, v in ipairs(a) do
-            less, value = _M.less(v, b)
+            less = _M.less(v, b)
             if less then
                 break
             end
         end
     else
-        less = a < b
-
-        if less then
-            value = a
+        if type(a) == "string" then
+            a = atoi(a)
         end
+        if type(b) == "string" then
+            b = atoi(b)
+        end
+        less = a < b
     end
 
-    return less, value
+    return less
 end
 
-
 function _M.greater_equals(a, b)
-    local greater_equals, value
+    local greater_equals
 
     if type(a) == "table" then
         for _, v in ipairs(a) do
-            greater_equals, value = _M.greater_equals(v, b)
+            greater_equals = _M.greater_equals(v, b)
             if greater_equals then
                 break
             end
         end
     else
-        greater_equals = a >= b
-
-        if greater_equals then
-            value = a
+        if type(a) == "string" then
+            a = atoi(a)
         end
+        if type(b) == "string" then
+            b = atoi(b)
+        end
+        greater_equals = a >= b
     end
 
-    return greater_equals, value
+    return greater_equals
 end
 
-
 function _M.less_equals(a, b)
-    local less_equals, value
+    local less_equals
 
     if type(a) == "table" then
         for _, v in ipairs(a) do
-            less_equals, value = _M.less_equals(v, b)
+            less_equals = _M.less_equals(v, b)
             if less_equals then
                 break
             end
         end
     else
-        less_equals = a <= b
-
-        if less_equals then
-            value = a
+        if type(a) == "string" then
+            a = atoi(a)
         end
+        if type(b) == "string" then
+            b = atoi(b)
+        end
+        less_equals = a <= b
     end
 
-    return less_equals, value
+    return less_equals
 end
-
 
 function _M.exists(needle, haystack)
     local exists, value
@@ -163,7 +174,6 @@ function _M.exists(needle, haystack)
     return exists, value
 end
 
-
 function _M.contains(haystack, needle)
     local contains, value
 
@@ -185,7 +195,6 @@ function _M.contains(haystack, needle)
 
     return contains, value
 end
-
 
 function _M.str_find(waf, subject, pattern)
     local from, to, match, value
@@ -209,7 +218,6 @@ function _M.str_find(waf, subject, pattern)
 
     return match, value
 end
-
 
 function _M.regex(waf, subject, pattern)
     local opts = waf._pcre_flags
@@ -238,7 +246,6 @@ function _M.regex(waf, subject, pattern)
     return match, captures
 end
 
-
 function _M.refind(waf, subject, pattern)
     local opts = waf._pcre_flags
     local from, to, err, match
@@ -265,7 +272,6 @@ function _M.refind(waf, subject, pattern)
 
     return match, from
 end
-
 
 function _M.ac_lookup(needle, haystack, ctx)
     local id = ctx.id
@@ -300,7 +306,6 @@ function _M.ac_lookup(needle, haystack, ctx)
     return match, value
 end
 
-
 function _M.cidr_match(ip, cidr_pattern)
     local t = {}
     local n = 1
@@ -326,7 +331,6 @@ function _M.cidr_match(ip, cidr_pattern)
 
     return iputils.ip_in_cidrs(ip, t), ip
 end
-
 
 function _M.rbl_lookup(waf, ip, rbl_srv, ctx)
     local nameservers = ctx.nameservers
@@ -368,7 +372,7 @@ function _M.rbl_lookup(waf, ip, rbl_srv, ctx)
     elseif answers.errcode then
         -- we had some other type of err that we should know about
         logger.warn(waf, "rbl lookup failure: " .. answers.errstr ..
-            " (" .. answers.errcode .. ")")
+                " (" .. answers.errcode .. ")")
         return false, nil
     else
         -- we got a dns response, for now we're only going to return the first entry
@@ -381,7 +385,6 @@ function _M.rbl_lookup(waf, ip, rbl_srv, ctx)
         end
     end
 end
-
 
 function _M.detect_sqli(input)
     if type(input) == 'table' then
@@ -400,7 +403,6 @@ function _M.detect_sqli(input)
 
     return false, nil
 end
-
 
 function _M.detect_xss(input)
     if type(input) == 'table' then
@@ -424,7 +426,6 @@ function _M.detect_xss(input)
     return false, nil
 end
 
-
 function _M.str_match(input, pattern)
     if type(input) == 'table' then
         for _, v in ipairs(input) do
@@ -443,8 +444,12 @@ function _M.str_match(input, pattern)
 
         local char = {}
 
-        for k = 0, 255 do char[k] = m end
-        for k = 1, m - 1 do char[pattern:sub(k, k):byte()] = m - k end
+        for k = 0, 255 do
+            char[k] = m
+        end
+        for k = 1, m - 1 do
+            char[pattern:sub(k, k):byte()] = m - k
+        end
 
         local k = m
         while k <= n do
@@ -467,7 +472,6 @@ function _M.str_match(input, pattern)
     return false, nil
 end
 
-
 function _M.verify_cc(waf, input, pattern)
     local match, value
     match = false
@@ -486,7 +490,9 @@ function _M.verify_cc(waf, input, pattern)
         do
             local m = _M.refind(waf, input, pattern)
 
-            if not m then return false, nil end
+            if not m then
+                return false, nil
+            end
         end
 
         -- remove all non digits
@@ -520,10 +526,7 @@ function _M.verify_cc(waf, input, pattern)
     return match, value
 end
 
-
--- module-level cache of validate_byterange
-local _byterange_cache = {}
-
+--- comment range:[left,right]
 function _M.validate_byterange(input, range_pattern, ctx)
     local id = ctx.id
 
@@ -553,7 +556,7 @@ function _M.validate_byterange(input, range_pattern, ctx)
 
     if type(input) == 'table' then
         for _, v in ipairs(input) do
-            local match, value = _M.byterange(v, range_pattern, ctx)
+            local match, value = _M.validate_byterange(v, range_pattern, ctx)
 
             if match then
                 return match, value
@@ -584,7 +587,6 @@ function _M.validate_byterange(input, range_pattern, ctx)
     return false, input
 end
 
-
 function _M.validate_urlencoding(waf, pattern)
     local len = #pattern
     if len == 0 then
@@ -592,83 +594,131 @@ function _M.validate_urlencoding(waf, pattern)
     end
     local rc = libdecode.validate_url_encoding(pattern, len)
     if rc == 1 then
-        if waf._debug == true then ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Valid URL Encoding at '" .. pattern .. "'") end
+        if waf._debug == true then
+            ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Valid URL Encoding at '" .. pattern .. "'")
+        end
         return false
     elseif rc == -2 then
-        if waf._debug == true then ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Invalid URL Encoding: Non-hexadecimal digits used at '" .. pattern .. "'") end
+        if waf._debug == true then
+            ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Invalid URL Encoding: Non-hexadecimal digits used at '" .. pattern .. "'")
+        end
         return true
     elseif rc == -3 then
-        if waf._debug == true then ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Invalid URL Encoding: Not enough characters at the end of input at '" .. pattern .. "'") end
+        if waf._debug == true then
+            ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Invalid URL Encoding: Not enough characters at the end of input at '" .. pattern .. "'")
+        end
         return true
     else
-        if waf._debug == true then ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Invalid URL Encoding: Internal Error (rc = " .. rc .. ") at '" .. pattern .. "'") end
+        if waf._debug == true then
+            ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Invalid URL Encoding: Internal Error (rc = " .. rc .. ") at '" .. pattern .. "'")
+        end
         return true
     end
-    return false
 end
 
-
+local err_char = ffi_new("unsigned char [1]")
 function _M.validate_utf8encoding(waf, pattern)
-    local rc = libdecode.validate_utf8_encoding(pattern, #pattern)
+    local rc = libdecode.validate_utf8_encoding(pattern, #pattern, err_char)
     if rc == -1 then
-        if waf._debug == true then ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Invalid UTF-8 encoding: not enough bytes in character at " ..pattern) end
+        if waf._debug == true then
+            ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Invalid UTF-8 encoding: not enough bytes in character at " .. pattern .. ". [offset \"" .. err_char[0] .. "\"]")
+        end
         return true
     elseif rc == -2 then
-        if waf._debug == true then ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Invalid UTF-8 encoding: invalid byte value in character at " ..pattern) end
+        if waf._debug == true then
+            ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Invalid UTF-8 encoding: invalid byte value in character at " .. pattern .. ". [offset \"" .. err_char[0] .. "\"]")
+        end
         return true
     elseif rc == -3 then
-        if waf._debug == true then ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Invalid UTF-8 encoding: overlong character detected at " ..pattern) end
+        if waf._debug == true then
+            ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Invalid UTF-8 encoding: overlong character detected at " .. pattern .. ". [offset \"" .. err_char[0] .. "\"]")
+        end
         return true
     elseif rc == -4 then
-        if waf._debug == true then ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Invalid UTF-8 encoding: use of restricted character at " ..pattern) end
+        if waf._debug == true then
+            ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Invalid UTF-8 encoding: use of restricted character at " .. pattern .. ". [offset \"" .. err_char[0] .. "\"]")
+        end
         return true
     elseif rc == -5 then
-        if waf._debug == true then ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Invalid UTF-8 encoding at " ..pattern) end
+        if waf._debug == true then
+            ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Invalid UTF-8 encoding at " .. pattern .. ". [offset \"" .. err_char[0] .. "\"]")
+        end
         return true
-    else
-        if waf._debug == true then ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Internal error during UTF-8 validation at" ..pattern) end
+    elseif rc < 0 then
+        if waf._debug == true then
+            ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Internal error during UTF-8 validation at" .. pattern .. ". [offset \"" .. err_char[0] .. "\"]")
+        end
         return true
     end
     return false
 end
 
-
 _M.lookup = {
-    REGEX                  = function(waf, collection, pattern) return _M.regex(waf, collection, pattern) end,
-    REFIND                 = function(waf, collection, pattern) return _M.refind(waf, collection, pattern) end,
-    EQUALS                 = function(waf, collection, pattern) return _M.equals(collection, pattern) end,
-    GREATER                = function(waf, collection, pattern) return _M.greater(collection, pattern) end,
-    LESS                   = function(waf, collection, pattern) return _M.less(collection, pattern) end,
-    GREATER_EQ             = function(waf, collection, pattern) return _M.greater_equals(collection, pattern) end,
-    LESS_EQ                = function(waf, collection, pattern) return _M.less_equals(collection, pattern) end,
-    EXISTS                 = function(waf, collection, pattern) return _M.exists(collection, pattern) end,
-    CONTAINS               = function(waf, collection, pattern) return _M.contains(collection, pattern) end,
-    STR_EXISTS             = function(waf, collection, pattern) return _M.str_find(waf, pattern, collection) end,
-    STR_CONTAINS           = function(waf, collection, pattern) return _M.str_find(waf, collection, pattern) end,
-    PM                     = function(waf, collection, pattern, ctx)
+    REGEX = function(waf, collection, pattern)
+        return _M.regex(waf, collection, pattern)
+    end,
+    REFIND = function(waf, collection, pattern)
+        return _M.refind(waf, collection, pattern)
+    end,
+    EQUALS = function(waf, collection, pattern)
+        return _M.equals(collection, pattern)
+    end,
+    GREATER = function(waf, collection, pattern)
+        return _M.greater(collection, pattern)
+    end,
+    LESS = function(waf, collection, pattern)
+        return _M.less(collection, pattern)
+    end,
+    GREATER_EQ = function(waf, collection, pattern)
+        return _M.greater_equals(collection, pattern)
+    end,
+    LESS_EQ = function(waf, collection, pattern)
+        return _M.less_equals(collection, pattern)
+    end,
+    EXISTS = function(waf, collection, pattern)
+        return _M.exists(collection, pattern)
+    end,
+    CONTAINS = function(waf, collection, pattern)
+        return _M.contains(collection, pattern)
+    end,
+    STR_EXISTS = function(waf, collection, pattern)
+        return _M.str_find(waf, pattern, collection)
+    end,
+    STR_CONTAINS = function(waf, collection, pattern)
+        return _M.str_find(waf, collection, pattern)
+    end,
+    PM = function(waf, collection, pattern, ctx)
         local match, index = _M.ac_lookup(collection, pattern, ctx)
         return match, pattern[index]
     end,
-    CIDR_MATCH             = function(waf, collection, pattern) return _M.cidr_match(collection, pattern) end,
-    RBL_LOOKUP             = function(waf, collection, pattern, ctx) return _M.rbl_lookup(waf, collection, pattern, ctx) end,
-    DETECT_SQLI            = function(waf, collection, pattern) return _M.detect_sqli(collection) end,
-    DETECT_XSS             = function(waf, collection, pattern) return _M.detect_xss(collection) end,
-    STR_MATCH              = function(waf, collection, pattern) return _M.str_match(collection, pattern) end,
-    VERIFY_CC              = function(waf, collection, pattern) return _M.verify_cc(waf, collection, pattern) end,
-    VALIDATE_BYTE_RANGE    = function(waf, collection, pattern) return _M.validate_byterange(waf, collection, pattern) end,
-    VALIDATE_URL_ENCODING  = function(waf, collection, pattern) return _M.validate_urlencoding(waf, pattern) end,
-    VALIDATE_UTF8_ENCODING = function(waf, collection, pattern) return _M.validate_utf8encoding(waf, pattern) end,
+    CIDR_MATCH = function(waf, collection, pattern)
+        return _M.cidr_match(collection, pattern)
+    end,
+    RBL_LOOKUP = function(waf, collection, pattern, ctx)
+        return _M.rbl_lookup(waf, collection, pattern, ctx)
+    end,
+    DETECT_SQLI = function(waf, collection, pattern)
+        return _M.detect_sqli(collection)
+    end,
+    DETECT_XSS = function(waf, collection, pattern)
+        return _M.detect_xss(collection)
+    end,
+    STR_MATCH = function(waf, collection, pattern)
+        return _M.str_match(collection, pattern)
+    end,
+    VERIFY_CC = function(waf, collection, pattern)
+        return _M.verify_cc(waf, collection, pattern)
+    end,
+    VALIDATE_BYTE_RANGE = function(waf, collection, pattern)
+        return _M.validate_byterange(waf, collection, pattern)
+    end,
+    VALIDATE_URL_ENCODING = function(waf, collection, pattern)
+        return _M.validate_urlencoding(waf, collection)
+    end,
+    VALIDATE_UTF8_ENCODING = function(waf, collection, pattern)
+        return _M.validate_utf8encoding(waf, collection)
+    end,
 }
-
-local function refind_patterns(_, waf, collection, patterns)
-    for i, pattern in ipairs(patterns) do
-        local match, v = _M.refind(waf, collection, pattern)
-        if not match then
-            return i - 1
-        end
-    end
-end
-
 
 ---comment
 ---@param waf WAF
@@ -679,46 +729,69 @@ function _M.hyperscan(waf, collection, rule, ctx)
     local hash = ctx.id
     local hs = _hyperscan_dicts[hash]
     local patterns = rule.patterns
+    local ids = rule.ids
     if not hs then
-        hs = hyperscan.block_new(ctx.id)
+        if not hyperscan then
+            logger.fatal_fail("not initialize hyperscan")
+        end
+        hs = hyperscan.block_new(hash)
 
-        local ok, err = hs:compile(patterns)
-        if not ok then
-            if waf._debug == true then ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "failed to compile hyperscan pattern: " .. err) end
-            hs = {
-                scan1 = refind_patterns
-            }
-        else
-            hs.scan1 = function(self, waf, collection, _)
-                return self:scan(collection)
+        local t = table_new(#patterns, 0)
+        for i, v in ipairs(patterns) do
+            local n = tonumber(ids[i])
+            if not n then
+                logger.WARN("Bad pattern id: " .. (ids[i] or ''))
+            else
+                t[i] = { id = n, pattern = v, flag = 'ids' }
             end
+        end
+
+        local ok, err = hs:compile(t)
+        if not ok then
+            logger.fatal_fail("failed to compile hyperscan pattern: " .. err)
         end
         _hyperscan_dicts[hash] = hs
     end
 
-    local index
+    local ok, id
     if type(collection) == "table" then
         for _, v in ipairs(collection) do
-            index = hs:scan1(waf, v, patterns)
-            if index then break end
+            ok, id = hs:scan(v)
+            if ok then
+                break
+            end
         end
     else
-        index = hs:scan1(waf, collection, patterns)
+        ok, id = hs:scan(collection)
     end
-    if index then index = index + 1 end
-    return index ~= nil, '', rule.ids[index]
+    if ok then
+        if waf._debug == true then
+            ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Match of index " .. id)
+        end
+    end
+    return id ~= nil, '', id
 end
-
 
 _M.parallel_lookup = {
     REFIND = _M.hyperscan,
-    ---@param rule WAF.ParallelRuleset.Rule
-    PM = function(waf, collection, rule, ctx)
-        local match, index = _M.ac_lookup(collection, rule.patterns, ctx)
-        if match then
-            return match, rule.patterns[index], rule.ids[index]
-        end
-    end,
+    PM = _M.hyperscan,
 }
+
+function _M.reload_cache(rule_id)
+    local updated = false
+    if _ac_dicts[rule_id] then
+        _ac_dicts[rule_id] = nil
+        updated = true
+    end
+    if _hyperscan_dicts[rule_id] then
+        _hyperscan_dicts[rule_id] = nil
+        updated = true
+    end
+    if _byterange_cache[rule_id] then
+        _byterange_cache[rule_id] = nil
+        updated = true
+    end
+    return updated
+end
 
 return _M

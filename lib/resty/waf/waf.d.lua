@@ -94,6 +94,7 @@
 ---@field ids integer[]
 ---@field patterns string[]
 ---@field operator string
+---@field id string
 ---@field __cacheCompiler? fun(self:WAF.ParallelRuleset.Rule)
 
 ---@alias WAF.ParallelRuleset.Variable table<WAF.VarString,WAF.ParallelRuleset.Rule>

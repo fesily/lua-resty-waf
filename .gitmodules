@@ -7,3 +7,9 @@
 [submodule "lua-resty-htmlentities"]
 	path = lua-resty-htmlentities
 	url = https://github.com/detailyang/lua-resty-htmlentities
+[submodule "test-cases/secrules-language-tests"]
+	path = test-cases/secrules-language-tests
+	url = https://github.com/SpiderLabs/secrules-language-tests
+[submodule "lua-resty-hyperscan"]
+	path = lua-resty-hyperscan
+	url = https://github.com/fesily/lua-resty-hyperscan.git

@@ -175,7 +175,7 @@ end
 function _M.load_lua_rule(name, version, home)
     local path = home or "./"
 
-    local full_name = path .. "rules/" .. name .. ".lua"
+    local full_name = path .. "/rules/" .. name .. ".lua"
     local time, err = lfs.attributes(full_name, 'modification')
     if err or time == version then
         return nil
@@ -187,6 +187,7 @@ function _M.load_lua_rule(name, version, home)
         logger.WARN("loadfile error: " .. err)
     else
         setfenv(fn, {})
+        fn = fn()
         return setmetatable({ __version = time }, { __call = fn })
     end
 
