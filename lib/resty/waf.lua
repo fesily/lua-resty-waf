@@ -1003,7 +1003,7 @@ function _M.sieve_rule(self, id, sieves)
             end
 
             for i, rule in ipairs(rules) do
-                if rule.id == id then
+                if rule.id == tonumber(id) then
                     orig_rule = rule
                     self.target_update_map[id] = util.table_copy(rule.vars)
                     break
