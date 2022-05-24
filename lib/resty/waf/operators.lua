@@ -594,24 +594,16 @@ function _M.validate_urlencoding(waf, pattern)
     end
     local rc = libdecode.validate_url_encoding(pattern, len)
     if rc == 1 then
-        if waf._debug == true then
-            ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Valid URL Encoding at '" .. pattern .. "'")
-        end
+        --_LOG_"Valid URL Encoding at '" .. pattern .. "'"
         return false
     elseif rc == -2 then
-        if waf._debug == true then
-            ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Invalid URL Encoding: Non-hexadecimal digits used at '" .. pattern .. "'")
-        end
+        --_LOG_"Invalid URL Encoding: Non-hexadecimal digits used at '" .. pattern .. "'"
         return true
     elseif rc == -3 then
-        if waf._debug == true then
-            ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Invalid URL Encoding: Not enough characters at the end of input at '" .. pattern .. "'")
-        end
+        --_LOG_"Invalid URL Encoding: Not enough characters at the end of input at '" .. pattern .. "'"
         return true
     else
-        if waf._debug == true then
-            ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Invalid URL Encoding: Internal Error (rc = " .. rc .. ") at '" .. pattern .. "'")
-        end
+        --_LOG_"Invalid URL Encoding: Internal Error (rc = " .. rc .. ") at '" .. pattern .. "'"
         return true
     end
 end
@@ -620,34 +612,22 @@ local err_char = ffi_new("unsigned char [1]")
 function _M.validate_utf8encoding(waf, pattern)
     local rc = libdecode.validate_utf8_encoding(pattern, #pattern, err_char)
     if rc == -1 then
-        if waf._debug == true then
-            ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Invalid UTF-8 encoding: not enough bytes in character at " .. pattern .. ". [offset \"" .. err_char[0] .. "\"]")
-        end
+        --_LOG_"Invalid UTF-8 encoding: not enough bytes in character at " .. pattern .. ". [offset \"" .. err_char[0] .. "\"]"
         return true
     elseif rc == -2 then
-        if waf._debug == true then
-            ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Invalid UTF-8 encoding: invalid byte value in character at " .. pattern .. ". [offset \"" .. err_char[0] .. "\"]")
-        end
+        --_LOG_"Invalid UTF-8 encoding: invalid byte value in character at " .. pattern .. ". [offset \"" .. err_char[0] .. "\"]"
         return true
     elseif rc == -3 then
-        if waf._debug == true then
-            ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Invalid UTF-8 encoding: overlong character detected at " .. pattern .. ". [offset \"" .. err_char[0] .. "\"]")
-        end
+        --_LOG_"Invalid UTF-8 encoding: overlong character detected at " .. pattern .. ". [offset \"" .. err_char[0] .. "\"]"
         return true
     elseif rc == -4 then
-        if waf._debug == true then
-            ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Invalid UTF-8 encoding: use of restricted character at " .. pattern .. ". [offset \"" .. err_char[0] .. "\"]")
-        end
+        --_LOG_"Invalid UTF-8 encoding: use of restricted character at " .. pattern .. ". [offset \"" .. err_char[0] .. "\"]"
         return true
     elseif rc == -5 then
-        if waf._debug == true then
-            ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Invalid UTF-8 encoding at " .. pattern .. ". [offset \"" .. err_char[0] .. "\"]")
-        end
+        --_LOG_"Invalid UTF-8 encoding at " .. pattern .. ". [offset \"" .. err_char[0] .. "\"]"
         return true
     elseif rc < 0 then
-        if waf._debug == true then
-            ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Internal error during UTF-8 validation at" .. pattern .. ". [offset \"" .. err_char[0] .. "\"]")
-        end
+        --_LOG_"Internal error during UTF-8 validation at" .. pattern .. ". [offset \"" .. err_char[0] .. "\"]"
         return true
     end
     return false
@@ -765,9 +745,7 @@ function _M.hyperscan(waf, collection, rule, ctx)
         ok, id = hs:scan(collection)
     end
     if ok then
-        if waf._debug == true then
-            ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Match of index " .. id)
-        end
+        --_LOG_"Match of index " .. id
     end
     return id ~= nil, '', id
 end
