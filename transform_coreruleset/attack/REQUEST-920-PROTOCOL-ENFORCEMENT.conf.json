@@ -106,7 +106,7 @@
          "operator" : "REFIND",
          "opts" : {
             "transform" : [
-               "uri_decode"
+               "uri_decode_uni"
             ]
          },
          "pattern" : "(?i)^(?:&(?:(?:[aeiouclnrszg]acut|[aeiou]grav|[anoi]tild)e|(?:[cgklnrst]cedi|[aeiouy]um)l|[aeioucghjswy]circ|[cdelnrstz]caron|a(?:pos|mp)|[au]ring|oslash|nbsp);|[^'\";=])*$",
@@ -813,7 +813,7 @@
          "operator" : "VALIDATE_BYTE_RANGE",
          "opts" : {
             "transform" : [
-               "uri_decode"
+               "uri_decode_uni"
             ]
          },
          "pattern" : [
@@ -1964,7 +1964,7 @@
          "opts" : {
             "parsepattern" : 1,
             "transform" : [
-               "uri_decode",
+               "uri_decode_uni",
                "lowercase"
             ]
          },
@@ -2001,7 +2001,7 @@
          "operator" : "REFIND",
          "opts" : {
             "transform" : [
-               "uri_decode"
+               "uri_decode_uni"
             ]
          },
          "pattern" : "\\.[^.~]+~(?:/.*|)$",
@@ -2387,7 +2387,7 @@
          "operator" : "VALIDATE_BYTE_RANGE",
          "opts" : {
             "transform" : [
-               "uri_decode"
+               "uri_decode_uni"
             ]
          },
          "pattern" : [
@@ -2501,7 +2501,7 @@
          "operator" : "REFIND",
          "opts" : {
             "transform" : [
-               "uri_decode"
+               "uri_decode_uni"
             ]
          },
          "pattern" : "['\";=]",
@@ -2654,7 +2654,7 @@
          "operator" : "VALIDATE_BYTE_RANGE",
          "opts" : {
             "transform" : [
-               "uri_decode"
+               "uri_decode_uni"
             ]
          },
          "pattern" : [
@@ -3086,7 +3086,7 @@
          "operator" : "VALIDATE_BYTE_RANGE",
          "opts" : {
             "transform" : [
-               "uri_decode"
+               "uri_decode_uni"
             ]
          },
          "pattern" : [
@@ -3150,7 +3150,7 @@
          "operator" : "VALIDATE_BYTE_RANGE",
          "opts" : {
             "transform" : [
-               "uri_decode"
+               "uri_decode_uni"
             ]
          },
          "pattern" : [
@@ -3232,7 +3232,7 @@
          "operator" : "REFIND",
          "opts" : {
             "transform" : [
-               "uri_decode"
+               "uri_decode_uni"
             ]
          },
          "pattern" : "^(?:\\?[01])?$",

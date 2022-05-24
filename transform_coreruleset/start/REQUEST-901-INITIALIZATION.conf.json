@@ -1002,7 +1002,7 @@
             "nolog" : 1,
             "parsepattern" : 1,
             "transform" : [
-               "uri_decode"
+               "uri_decode_uni"
             ]
          },
          "pattern" : "1",

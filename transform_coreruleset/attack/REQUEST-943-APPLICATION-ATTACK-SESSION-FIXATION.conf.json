@@ -76,7 +76,7 @@
          "operator" : "REGEX",
          "opts" : {
             "transform" : [
-               "uri_decode"
+               "uri_decode_uni"
             ]
          },
          "pattern" : "(?i:\\.cookie\\b.*?;\\W*?(?:expires|domain)\\W*?=|\\bhttp-equiv\\W+set-cookie\\b)",

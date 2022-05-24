@@ -145,7 +145,8 @@
          "operator" : "REGEX",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "remove_nulls",
                "cmd_line"
             ]
@@ -221,7 +222,8 @@
          "operator" : "PM",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "normalise_path_win"
             ]
          },
@@ -1500,7 +1502,8 @@
          "operator" : "PM",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "normalise_path_win"
             ]
          },

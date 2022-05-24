@@ -635,7 +635,7 @@
          "operator" : "REFIND",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "uri_decode_uni",
                "js_decode",
                "html_decode"
             ]
@@ -769,7 +769,7 @@
          "operator" : "REFIND",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "uri_decode_uni",
                "js_decode",
                "html_decode"
             ]
@@ -1220,7 +1220,7 @@
          "operator" : "REFIND",
          "opts" : {
             "transform" : [
-               "uri_decode"
+               "uri_decode_uni"
             ]
          },
          "pattern" : "(?:class\\.module\\.classLoader\\.resources\\.context\\.parent\\.pipeline|springframework\\.context\\.support\\.FileSystemXmlApplicationContext)",
@@ -1492,7 +1492,7 @@
          "operator" : "REFIND",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "uri_decode_uni",
                "js_decode",
                "html_decode"
             ]

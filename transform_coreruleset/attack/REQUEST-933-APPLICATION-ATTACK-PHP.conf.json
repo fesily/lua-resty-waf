@@ -622,7 +622,7 @@
          "opts" : {
             "transform" : [
                "normalise_path",
-               "uri_decode"
+               "uri_decode_uni"
             ]
          },
          "pattern" : [
@@ -801,7 +801,8 @@
          "operator" : "REFIND",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "remove_nulls",
                "cmd_line"
             ]
@@ -2804,7 +2805,7 @@
          "opts" : {
             "transform" : [
                "normalise_path",
-               "uri_decode"
+               "uri_decode_uni"
             ]
          },
          "pattern" : "(?:HTTP_(?:ACCEPT(?:_(?:ENCODING|LANGUAGE|CHARSET))?|(?:X_FORWARDED_FO|REFERE)R|(?:USER_AGEN|HOS)T|CONNECTION|KEEP_ALIVE)|PATH_(?:TRANSLATED|INFO)|ORIG_PATH_INFO|QUERY_STRING|REQUEST_URI|AUTH_TYPE)",
@@ -3045,7 +3046,7 @@
          "operator" : "PM",
          "opts" : {
             "transform" : [
-               "uri_decode"
+               "uri_decode_uni"
             ]
          },
          "pattern" : [

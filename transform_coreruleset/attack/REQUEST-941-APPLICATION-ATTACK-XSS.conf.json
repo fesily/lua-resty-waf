@@ -76,7 +76,8 @@
          "operator" : "DETECT_XSS",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "html_decode",
                "js_decode",
                "css_decode",
@@ -169,7 +170,8 @@
          "operator" : "REGEX",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "html_decode",
                "js_decode",
                "css_decode",
@@ -272,7 +274,8 @@
          "operator" : "REGEX",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "html_decode",
                "js_decode",
                "css_decode",
@@ -365,7 +368,8 @@
          "operator" : "REGEX",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "html_decode",
                "js_decode",
                "css_decode",
@@ -466,7 +470,8 @@
          "operator" : "REGEX",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "html_decode",
                "js_decode",
                "css_decode",
@@ -566,7 +571,8 @@
          "operator" : "REGEX",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "html_decode",
                "js_decode",
                "css_decode",
@@ -666,7 +672,8 @@
          "operator" : "PM",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "html_decode",
                "js_decode",
                "css_decode",
@@ -761,7 +768,8 @@
          "operator" : "REGEX",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "html_decode",
                "js_decode",
                "css_decode",
@@ -847,7 +855,8 @@
          "operator" : "REGEX",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "html_decode",
                "js_decode",
                "css_decode",
@@ -933,7 +942,8 @@
          "operator" : "REGEX",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "html_decode",
                "js_decode",
                "css_decode",
@@ -1019,7 +1029,8 @@
          "operator" : "REGEX",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "html_decode",
                "js_decode",
                "css_decode",
@@ -1105,7 +1116,8 @@
          "operator" : "REGEX",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "html_decode",
                "js_decode",
                "css_decode",
@@ -1191,7 +1203,8 @@
          "operator" : "REGEX",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "html_decode",
                "js_decode",
                "css_decode",
@@ -1278,7 +1291,8 @@
          "operator" : "REGEX",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "html_decode",
                "js_decode",
                "css_decode",
@@ -1364,7 +1378,8 @@
          "operator" : "REGEX",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "html_decode",
                "js_decode",
                "css_decode",
@@ -1450,7 +1465,8 @@
          "operator" : "REGEX",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "html_decode",
                "js_decode",
                "css_decode",
@@ -1536,7 +1552,8 @@
          "operator" : "REGEX",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "html_decode",
                "js_decode",
                "css_decode",
@@ -1622,7 +1639,8 @@
          "operator" : "REGEX",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "html_decode",
                "js_decode",
                "css_decode",
@@ -1708,7 +1726,8 @@
          "operator" : "REGEX",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "html_decode",
                "js_decode",
                "css_decode",
@@ -2091,7 +2110,7 @@
          "operator" : "REGEX",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "uri_decode_uni",
                "compress_whitespace"
             ]
          },
@@ -2212,7 +2231,8 @@
          "operator" : "DETECT_XSS",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "html_decode",
                "js_decode",
                "css_decode",
@@ -2274,7 +2294,8 @@
          "operator" : "REGEX",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "html_decode",
                "js_decode",
                "css_decode",
@@ -2374,7 +2395,8 @@
          "operator" : "REGEX",
          "opts" : {
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "html_decode",
                "js_decode",
                "css_decode",
@@ -2468,7 +2490,8 @@
          "opts" : {
             "parsepattern" : 1,
             "transform" : [
-               "uri_decode",
+               "utf8_to_unicode",
+               "uri_decode_uni",
                "html_decode",
                "js_decode",
                "css_decode",
