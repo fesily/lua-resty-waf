@@ -16,12 +16,12 @@ OPM_LIB_DIR      ?= $(OPENRESTY_PREFIX)/site
 PWD               = `pwd`
 LUAROCKS         ?= luarocks
 
-LIBS       = waf waf.lua htmlentities.lua
-C_LIBS     = lua-aho-corasick lua-resty-htmlentities libinjection lua-resty-hyperscan
+LIBS       = waf waf.lua
+C_LIBS     = lua-aho-corasick libinjection lua-resty-hyperscan
 OPM_LIBS   = hamishforbes/lua-resty-iputils p0pr0ck5/lua-resty-cookie \
 	p0pr0ck5/lua-ffi-libinjection p0pr0ck5/lua-resty-logger-socket
 MAKE_LIBS  = $(C_LIBS) decode
-SO_LIBS    = libac.so libinjection.so libhtmlentities.so libdecode.so libwhs.so
+SO_LIBS    = libac.so libinjection.so  libdecode.so libwhs.so
 RULES      = rules
 ROCK_DEPS  = "lrexlib-pcre 2.7.2-1" busted luafilesystem
 
@@ -29,12 +29,12 @@ LOCAL_LIB_DIR = lib/resty
 
 .PHONY: all test install clean \
 test-unit test-acceptance test-regression test-translate test-lua-resty-hyperscan \
-lua-aho-corasick lua-resty-htmlentities libinjection lua-resty-hyperscan \
+lua-aho-corasick libinjection lua-resty-hyperscan \
 clean-libinjection clean-lua-aho-corasick clean-lua-resty-hyperscan install-opm-libs clean-opm-libs transform_coreruleset
 
 all: $(MAKE_LIBS) debug-macro
 
-clean: clean-libinjection clean-lua-aho-corasick clean-lua-resty-htmlentities \
+clean: clean-libinjection clean-lua-aho-corasick \
 	clean-decode clean-libs clean-test clean-debug-macro clean-lua-resty-hyperscan
 
 clean-debug-macro:
@@ -51,10 +51,6 @@ clean-deps: clean-opm-libs clean-rocks
 
 clean-lua-aho-corasick:
 	cd lua-aho-corasick && make clean
-
-clean-lua-resty-htmlentities:
-	cd lua-resty-htmlentities && make clean
-	rm -f lib/resty/htmlentities.lua
 
 clean-libinjection:
 	cd libinjection && make clean && git checkout -- .
@@ -92,11 +88,6 @@ lua-aho-corasick:
 	cd $@ && make
 	cp $@/libac.$(SO_EXT) lib/libac.so
 
-lua-resty-htmlentities:
-	cd $@ && make
-	cp $@/lib/resty/htmlentities.lua lib/resty
-	cp $@/libhtmlentities.$(SO_EXT) lib/libhtmlentities.so
-
 libinjection:
 	cd $@ && make all
 	cp $@/src/$@.so lib/
@@ -121,9 +112,6 @@ test-translate:
 test-lua-aho-corasick:
 	cd lua-aho-corasick && make test
 
-test-lua-resty-htmlentities:
-	cd lua-resty-htmlentities && make test
-
 test-libinjection:
 	cd libinjection && make check
 
@@ -132,7 +120,7 @@ test-lua-resty-hyperscan:
 
 test: clean all test-unit test-acceptance test-regression test-translate
 
-test-libs: clean all test-lua-aho-corasick test-lua-resty-htmlentities \
+test-libs: clean all test-lua-aho-corasick \
 	test-libinjection test-lua-resty-hyperscan
 
 test-recursive: test test-libs

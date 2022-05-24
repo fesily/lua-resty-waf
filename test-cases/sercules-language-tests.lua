@@ -23,7 +23,7 @@ local lfs = require 'lfs'
 
 local function json_re_cb(s)
     local num  = tonumber(s[1], 16)
-    if not num then return s end
+    if not num then return s[1] end
     return string.char(num)
 end
 
@@ -100,13 +100,29 @@ describe("op", function()
 end)
 
 
+local function in_list(table,v)
+    for key, value in ipairs(table) do
+        if v:find(value) then
+            return true
+        end
+    end
+end
+
 describe('transform', function()
     local transform = require("resty.waf.transform")
+    local skips = {
+        "base64DecodeExt",
+        "phpArgsNames",
+        "parityZero7bit",
+        "parityOdd7bit",
+        "parityEven7bit",
+    }
 
     ---@type string[]
     local files = get_all_files(dir .. "test-cases/secrules-language-tests/transformations/")
     assert.not_nil(files)
     for _, file in ipairs(files) do
+        if in_list(skips, file) then goto continue1 end
         local unittests = load_test_from_file(file)
         for i, unittest in ipairs(unittests or {}) do
             ---@cast unittest SecrulesTestCase
@@ -125,9 +141,13 @@ describe('transform', function()
                 if type(output) == 'number' and type(unittest.output) == 'string' then
                     output = tostring(output)
                 end
+                if unittest.output:byte(#unittest.output) ~= 0 then
+                    assert.not_equal(output:byte(#output),0)
+                end
                 assert.is_equal(output, unittest.output)
             end)
             ::continue::
         end
+        ::continue1::
     end
 end)

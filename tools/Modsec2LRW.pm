@@ -152,7 +152,10 @@ my $valid_transforms = {
 	trimleft           => 'trim_left',
 	trimright          => 'trim_right',
 	urldecode          => 'uri_decode',
-	urldecodeuni       => 'uri_decode',
+	urldecodeuni       => 'uri_decode_uni',
+    urlencode          => 'uri_encode',
+	escapeseqdecode    => 'escape_seq_decode',
+	utf8tounicode      => 'utf8_to_unicode',
 };
 
 my $action_lookup = {

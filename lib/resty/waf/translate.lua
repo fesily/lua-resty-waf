@@ -129,6 +129,7 @@ local valid_transforms = {
 	base64encode       = 'base64_encode',
 	cssdecode          = 'css_decode',
 	cmdline            = 'cmd_line',
+	cmd_line           = 'cmd_line',
 	compresswhitespace = 'compress_whitespace',
 	hexdecode          = 'hex_decode',
 	hexencode          = 'hex_encode',
@@ -153,7 +154,10 @@ local valid_transforms = {
 	trimleft           = 'trim_left',
 	trimright          = 'trim_right',
 	urldecode          = 'uri_decode',
-	urldecodeuni       = 'uri_decode',
+	urldecodeuni       = 'uri_decode_uni',
+    urlencode          = 'uri_encode',
+	escapeseqdecode    = 'escape_seq_decode',
+	utf8tounicode    ='utf8_to_unicode'
 };
 _M.valid_transforms = valid_transforms
 
