@@ -88,7 +88,8 @@ _M.nondisruptive_lookup = {
 		if waf._debug == true then ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Runtime ignoring rules by meta") end
 
 		-- this lookup table holds
-		local meta_rules = waf._meta_exception.meta_ids[ctx.id] or {}
+		local meta_rules = waf._meta_exception.meta_ids[ctx.id]
+		if not meta_rules then return end
 
 		for i, id in ipairs(meta_rules) do
 			if waf._debug == true then ngx.log(waf._debug_log_level, '[', waf.transaction_id, '] ', "Runtime ignoring rule " .. id) end
