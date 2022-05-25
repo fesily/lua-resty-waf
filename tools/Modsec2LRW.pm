@@ -216,12 +216,7 @@ my $ctl_lookup = {
 		meta_exception($translation);
 	},
 	requestBodyProcessor     => sub {
-		my ($value, $translation) = @_;
-
-		push @{$translation->{actions}->{nondisrupt}}, {
-			action => 'request_body_processor',
-			data   => $value,
-		};
+		#TODO ignore this ctl
 	},
 	auditLogParts            => sub {
 		#TODO not support now,ignore this ctl

@@ -65,15 +65,15 @@ export namespace WAF {
             VALIDATE_BYTE_RANGE = 'VALIDATE_BYTE_RANGE',
         }
         export function isTestOperator (op: operator): boolean {
-          switch (op) {
+            switch (op) {
             case operator.EQUALS:
             case operator.GREATER:
             case operator.LESS:
             case operator.GREATER_EQ:
             case operator.LESS_EQ:
-              return true
-          }
-          return false
+                return true
+            }
+            return false
         }
         export interface Data {
             col: string;
@@ -109,7 +109,6 @@ export namespace WAF {
             rule_remove_id = 'rule_remove_id',
             rule_remove_by_meta = 'rule_remove_by_meta',
             mode_update = 'mode_update',
-            request_body_processor = 'request_body_processor',
         }
         export interface Nondisrupt {
             action: NondisruptAction;
