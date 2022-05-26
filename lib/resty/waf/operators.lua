@@ -62,6 +62,9 @@ end
 
 function _M.greater(a, b)
     local greater
+    if type(b) == "string" then
+        b = atoi(b)
+    end
 
     if type(a) == "table" then
         for _, v in ipairs(a) do
@@ -74,9 +77,6 @@ function _M.greater(a, b)
         if type(a) == "string" then
             a = atoi(a)
         end
-        if type(b) == "string" then
-            b = atoi(b)
-        end
         greater = a > b
 
     end
@@ -85,6 +85,9 @@ end
 
 function _M.less(a, b)
     local less
+    if type(b) == "string" then
+        b = atoi(b)
+    end
 
     if type(a) == "table" then
         for _, v in ipairs(a) do
@@ -97,9 +100,7 @@ function _M.less(a, b)
         if type(a) == "string" then
             a = atoi(a)
         end
-        if type(b) == "string" then
-            b = atoi(b)
-        end
+
         less = a < b
     end
 
@@ -108,6 +109,9 @@ end
 
 function _M.greater_equals(a, b)
     local greater_equals
+    if type(b) == "string" then
+        b = atoi(b)
+    end
 
     if type(a) == "table" then
         for _, v in ipairs(a) do
@@ -120,9 +124,7 @@ function _M.greater_equals(a, b)
         if type(a) == "string" then
             a = atoi(a)
         end
-        if type(b) == "string" then
-            b = atoi(b)
-        end
+
         greater_equals = a >= b
     end
 
@@ -131,6 +133,9 @@ end
 
 function _M.less_equals(a, b)
     local less_equals
+    if type(b) == "string" then
+        b = atoi(b)
+    end
 
     if type(a) == "table" then
         for _, v in ipairs(a) do
@@ -143,9 +148,7 @@ function _M.less_equals(a, b)
         if type(a) == "string" then
             a = atoi(a)
         end
-        if type(b) == "string" then
-            b = atoi(b)
-        end
+
         less_equals = a <= b
     end
 
