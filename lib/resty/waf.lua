@@ -74,7 +74,6 @@ local function rule_to_ruleset(rule)
     return nil, 0
 end
 
-
 -- lookup tables for msg and tag exceptions
 -- public so it can be accessed via metatable
 _M._meta_exception = {
@@ -97,7 +96,6 @@ local function _build_exception_table()
         end
     end
 end
-
 
 -- get a subset or superset of request data collection
 ---@param collection any[]|any
@@ -140,7 +138,6 @@ local function _parse_collection(self, collection, var)
     return util.parse_collection[key](self, collection, value)
 end
 
-
 -- buffer a single log event into the per-request ctx table
 -- all event logs will be written out at the completion of the transaction if either:
 -- 1. the transaction was altered (e.g. a rule matched with an ACCEPT or DENY action), or
@@ -177,7 +174,6 @@ local function _transaction_id_header(self, ctx)
     ctx.t_header_set = true
 end
 
-
 -- cleanup
 local function _finalize(self, ctx)
     self._active_rulesets = nil
@@ -200,7 +196,6 @@ local function _finalize(self, ctx)
     end
 end
 
-
 -- use the lookup table to figure out what to do
 local function _rule_action(self, action, ctx, collections)
     if not action then
@@ -218,7 +213,6 @@ local function _rule_action(self, action, ctx, collections)
         actions.disruptive_lookup[action](self, ctx)
     end
 end
-
 
 -- transform collection values based on rule opts
 local function _do_transform(self, collection, transform)
@@ -298,7 +292,6 @@ local function _build_collection(self, var, collections, ctx, opts, transform)
 
     return collection
 end
-
 
 -- process an individual rule
 ---@param self WAF
@@ -398,7 +391,6 @@ local function _process_rule(self, rule, collections, ctx)
     return offset, match
 end
 
-
 -- calculate rule jump offsets
 ---@param ruleset WAF.PhaseRuleset
 local function _calculate_offset(ruleset)
@@ -436,7 +428,6 @@ local function _set_ruleset(k, rs)
 
     _set_id_rules(rs)
 end
-
 
 -- merge the default and any custom rules
 ---@param self WAF
@@ -674,7 +665,10 @@ function _M.exec(self, opts, ngx_ctx)
         --_LOG_"Operational mode is INACTIVE, not running"
         return
     end
-
+    if self._sampling_percentage ~= 100 and math.random(100) > self._sampling_percentage then
+        --_LOG_"Not Sampling this" .. self.transaction_id
+        return
+    end
     opts = opts or {}
 
     local phase = opts.phase or ngx.get_phase()
@@ -708,7 +702,9 @@ function _M.exec(self, opts, ngx_ctx)
         _M.initialize_tx(ctx, tab_new)
     end
     ctx.storage["TX"] = ctx.storage["TX"] or {}
+    ctx.storage["COLLECTIONS"] = collections
     ctx.col_lookup["TX"] = "TX"
+    ctx.col_lookup["COLLECTIONS"] = "COLLECTIONS"
     ctx.altered = false
     ctx.short_circuit = false
 
@@ -729,7 +725,8 @@ function _M.exec(self, opts, ngx_ctx)
         for k, v in pairs(opts.collections) do
             collections[k] = v
         end
-    else
+    end
+    if not opts.collections or (opts.collections and opts.init_collections) then
         collections_t.lookup[phase](self, collections, ctx)
     end
 
@@ -792,14 +789,13 @@ function _M.exec(self, opts, ngx_ctx)
             _exe_global_ruleset(self, collections, ctx, rs)
         end
 
-        if _M.finalize_exe then
-            _M.finalize_exe(collections)
+        if _M.finalize_exe and _M.finalize_exe(collections) then
+            actions.disruptive_lookup["DENY"](self, ctx)
         end
     end
 
     _finalize(self, ctx)
 end
-
 
 -- instantiate a new instance of the module
 function _M.new(self, ngx_ctx)
@@ -864,6 +860,7 @@ function _M.new(self, ngx_ctx)
         transaction_id = random.random_bytes(10),
         var_count = 0,
         var = {},
+        _sampling_percentage = 100,
     }
 
     if _ruleset_def_cnt == 0 then
@@ -876,8 +873,12 @@ function _M.new(self, ngx_ctx)
 end
 
 function _M.set_var(self, key, value)
+    return _M.set_var_ex(self, "TX", key, value)
+end
+
+function _M.set_var_ex(self, col, key, value)
     local data = {
-        col = "TX",
+        col = col,
         key = key,
         value = value,
     }
@@ -885,7 +886,6 @@ function _M.set_var(self, key, value)
     self.var_count = self.var_count + 1
     self.var[self.var_count] = data
 end
-
 
 -- configuraton wrapper for per-instance options
 function _M.set_option(self, option, value, data)
@@ -902,7 +902,6 @@ function _M.set_option(self, option, value, data)
         end
     end
 end
-
 
 -- init_by_lua handler precomputations
 function _M.init()
@@ -947,7 +946,6 @@ function _M.reload_rulesets()
     end
 end
 
-
 -- translate and add a SecRule files to ruleset defs
 function _M.load_secrules(ruleset, opts, err_tab)
     local rules_tab = {}
@@ -985,7 +983,6 @@ function _M.load_secrules(ruleset, opts, err_tab)
     _set_ruleset(name, chains)
 end
 
-
 -- add extra sieve elements to a rule on a per-instance basis
 function _M.sieve_rule(self, id, sieves)
     -- pointer to our rule
@@ -1003,7 +1000,7 @@ function _M.sieve_rule(self, id, sieves)
             end
 
             for i, rule in ipairs(rules) do
-                if rule.id == tonumber(id) then
+                if rule.id == id then
                     orig_rule = rule
                     self.target_update_map[id] = util.table_copy(rule.vars)
                     break
@@ -1025,7 +1022,7 @@ function _M.sieve_rule(self, id, sieves)
             -- found it, append the sieves (ignore for now)
             if arg == self.target_update_map[id][i].type then
                 local elts = type(sieve.elts) == "table" and sieve.elts
-                        or { sieve.elts }
+                    or { sieve.elts }
 
                 if not self.target_update_map[id][i].ignore then
                     self.target_update_map[id][i].ignore = tab_new(#elts, 0)
@@ -1037,8 +1034,8 @@ function _M.sieve_rule(self, id, sieves)
 
                 -- set/update the var's collection key
                 self.target_update_map[id][i].collection_key = calc.build_collection_key(
-                        self.target_update_map[id][i],
-                        orig_rule.opts.transform)
+                    self.target_update_map[id][i],
+                    orig_rule.opts.transform)
 
                 found = true
                 break
@@ -1050,7 +1047,6 @@ function _M.sieve_rule(self, id, sieves)
         end
     end
 end
-
 
 -- push log data regarding matching rule(s) to the configured target
 -- in the case of socket or file logging, this data will be buffered

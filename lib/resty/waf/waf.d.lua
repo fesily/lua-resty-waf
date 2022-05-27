@@ -2,7 +2,6 @@
 ---@field TX WAF.Collections.Tx
 ---@field IP string
 ---@field GLOBAL string
----@field REQBODY_PROCESSOR string
 ---@field RULE WAF.Rule
 ---@field REMOTE_ADDR string
 ---@field HTTP_VERSION string
@@ -42,6 +41,7 @@
 ---@field FILES_NAMES table
 ---@field FILES_SIZES table
 ---@field FILES_TMP_CONTENT table
+---@field REQBODY_PROCESSOR 'MULTIPART' | 'URLENCODED' | 'JSON' | 'XML'
 
 ---@class WAF.Rule.Data
 ---@field col string

@@ -303,6 +303,14 @@ local ctl_lookup = {
 		table.insert(translation.exceptions, value)
 		meta_exception(translation)
 	end,
+	requestBodyProcessor = function(value, translation)
+		local action = {
+			action = 'request_body_processor',
+			data   = value,
+		}
+
+		table.insert(translation.actions.nondisrupt, action)
+	end,
 }
 
 pats.encap_quotes = rex.new([=[^(['"])(.*)\1$]=])

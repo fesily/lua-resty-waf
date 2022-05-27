@@ -102,8 +102,9 @@ _M.lookup = {
 		local buf = decode_buf_helper(value, len + 1)
 
 		local i = libdecode.html_entity_decode(buf, len)
+        local str = ffi_str(buf, i)
 		--_LOG_"html decoded value is " .. str
-		return ffi_str(buf, i)
+		return str
 	end,
 	js_decode = function(waf, value)
 		local len = #value

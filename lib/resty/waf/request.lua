@@ -15,6 +15,8 @@ local re_match = regex.match
 
 _M.version = base.version
 
+---@param waf WAF
+---@param collections WAF.Collections
 function _M.parse_request_body(waf, request_headers, collections)
 	local content_type_header = request_headers["content-type"]
 
@@ -31,8 +33,12 @@ function _M.parse_request_body(waf, request_headers, collections)
 	-- but its necessary for us to properly handle the request
 	-- and its likely a sign of nogoodnickery anyway
 	if not content_type_header then
-		--_LOG_"Request has no content type, ignoring the body"
-		return nil
+        if not collections.REQBODY_PROCESSOR then
+		    --_LOG_"Request has no content type, ignoring the body"
+    		return nil
+        else
+            content_type_header = ''
+        end
 	end
 
 	--_LOG_"Examining content type " .. content_type_header
@@ -41,7 +47,7 @@ function _M.parse_request_body(waf, request_headers, collections)
 	-- multipart/form-data requests will be streamed in via lua-resty-upload,
 	-- which provides some basic sanity checking as far as form and protocol goes
 	-- (but its much less strict that ModSecurity's strict checking)
-	if re_find(content_type_header, [=[^multipart/form-data; boundary=]=], waf._pcre_flags) then
+	if collections.REQBODY_PROCESSOR == 'MULTIPART' or re_find(content_type_header, [=[^multipart/form-data; boundary=]=], waf._pcre_flags) then
 		if not waf._process_multipart_body then
 			return
 		end
@@ -104,6 +110,7 @@ function _M.parse_request_body(waf, request_headers, collections)
 				ngx.req.append_body(chunk)
 			elseif typ == "part_end" then
 				table.insert(FILES_SIZES, body_size)
+
 				files_size = files_size + body_size
 				body_size = 0
 
@@ -131,7 +138,7 @@ function _M.parse_request_body(waf, request_headers, collections)
 		collections.FILES_COMBINED_SIZE = files_size
 		collections.REQBODY_PROCESSOR =  "MULTIPART"
 		return nil
-	elseif re_find(content_type_header, [=[^application/x-www-form-urlencoded]=], waf._pcre_flags) then
+	elseif collections.REQBODY_PROCESSOR == 'URLENCODED' or re_find(content_type_header, [=[^application/x-www-form-urlencoded]=], waf._pcre_flags) then
 		-- use the underlying ngx API to read the request body
 		-- ignore processing the request body if the content length is larger than client_body_buffer_size
 		-- to avoid wasting resources on ruleset matching of very large data sets
