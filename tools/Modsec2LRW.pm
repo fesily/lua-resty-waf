@@ -216,7 +216,12 @@ my $ctl_lookup = {
 		meta_exception($translation);
 	},
 	requestBodyProcessor     => sub {
-		#TODO ignore this ctl
+		my ($value, $translation) = @_;
+
+		push @{$translation->{actions}->{nondisrupt}}, {
+			action => 'request_body_processor',
+			data   => $value,
+		};
 	},
 	auditLogParts            => sub {
 		#TODO not support now,ignore this ctl
@@ -878,8 +883,11 @@ sub translate_actions {
 			if ($translation->{operator} eq 'REFIND'){
 				$translation->{operator} = 'REGEX';
 			}elsif ($translation->{operator} ne 'PM'){
-				#warn "capture set when translated operator was not REFIND or PM :$translation->{operator},id:$translation->{id}" ;
-				warn "capture set when translated operator was not REFIND or PM" ;
+                if ($translation->{operator} and $translation->{id}){
+				    warn "capture set when translated operator was not REFIND or PM :$translation->{operator},id:$translation->{id}" ;
+                }else{
+				    warn "capture set when translated operator was not REFIND or PM" ;
+                }
 			}
 		} elsif ($key eq 'ctl') {
 			my ($opt, $data) = split /=/, $value;
