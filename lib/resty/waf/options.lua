@@ -69,6 +69,11 @@ _M.lookup = {
 
 		waf._hook_actions[value] = hook
 	end,
+    block_mode = function(waf, value)
+        if not value then
+            waf._hook_actions["DENY"] = function()end
+        end
+    end
 }
 
 return _M
