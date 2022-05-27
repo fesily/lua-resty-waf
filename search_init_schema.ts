@@ -153,6 +153,13 @@ function transformInit(rules: WAF.Rule[]): [string, WAF.Rule[]] {
         '901001',
         '901318',
         '901321',
+        '901340',
+        '901350',
+        '901400',
+        '901410',
+        '901450',
+        'END-SAMPLING',
+        '901500',
     ];
     //丢弃版本号检测
     rules = rules.filter((x, _1, _2) => !skip_rule_id.includes(x.id));
@@ -341,6 +348,7 @@ async function main(phase: string) {
     {
         const initRules = await readAllRules('./transform_coreruleset/start', phase);
         const [s, rules] = transformInit(initRules);
+        console.assert(rules.length == 2);
         appendFileJson('./rules/initialize.json', rules, phase);
         await fsPromise.writeFile('./rules/initialize.lua', s);
     }
